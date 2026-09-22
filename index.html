@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RoadSOS — Input-Driven Emergency Assistance</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --orange:#FF6B00;--blue:#1565C0;--red:#D32F2F;--green:#2E7D32;
+      --bg:#F8FAFC;--text:#1F2937;--card:#fff;--border:#E5E7EB;
+      --muted:#6B7280;--light-orange:#FFF3E8;--light-blue:#E3F0FF;
+      --light-red:#FFEBEE;--light-green:#E8F5E9;--emergency-bg:#1A0A0A;
+      --font-heading:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;
+    }
+    body{font-family:var(--font-body);background:#0F172A;color:var(--text);min-height:100vh}
+    .app{max-width:680px;margin:0 auto;background:var(--bg);min-height:100vh;position:relative;box-shadow:0 0 40px rgba(0,0,0,0.35);display:flex;flex-direction:column}
+    
+    /* NAV */
+    .nav{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+    .nav-logo{font-family:var(--font-heading);font-weight:800;font-size:18px;color:var(--orange);display:flex;align-items:center;gap:6px;cursor:pointer}
+    .nav-logo span{color:var(--blue)}
+    .nav-tabs{display:flex;gap:2px;background:#F1F5F9;border-radius:10px;padding:3px}
+    .nav-tab{padding:6px 11px;border:none;background:transparent;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);border-radius:8px;transition:all .2s;font-family:var(--font-body);white-space:nowrap;display:flex;align-items:center;gap:4px}
+    .nav-tab.active{background:var(--card);color:var(--blue);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+    
+    /* SCREENS */
+    .screen{display:none;padding:0 0 90px;flex:1}
+    .screen.active{display:block}
+    
+    /* DASHBOARD HERO */
+    .hero-bar{background:linear-gradient(135deg,var(--blue) 0%,#0D47A1 100%);padding:22px 20px;color:#fff;position:relative;overflow:hidden}
+    .hero-bar::after{content:'';position:absolute;right:-30px;top:-30px;width:130px;height:130px;background:rgba(255,255,255,.07);border-radius:50%}
+    .hero-greeting{font-size:13px;opacity:.85;margin-bottom:3px}
+    .hero-name{font-family:var(--font-heading);font-weight:700;font-size:24px;margin-bottom:4px;letter-spacing:-.3px}
+    .hero-loc{font-size:13px;opacity:.9;display:flex;align-items:center;gap:5px}
+    .hero-phone{font-size:12px;opacity:.8;margin-top:4px;display:flex;align-items:center;gap:5px}
+    .hero-status{position:absolute;top:18px;right:18px;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.18);backdrop-filter:blur(4px);border-radius:20px;padding:6px 12px}
+    .status-dot{width:8px;height:8px;border-radius:50%;background:#4CAF50;animation:pulse-green 2s infinite}
+    .status-dot.warning{background:#FFA000;animation:pulse-orange 2s infinite}
+    @keyframes pulse-green{0%,100%{box-shadow:0 0 0 0 rgba(76,175,80,.5)}50%{box-shadow:0 0 0 6px rgba(76,175,80,0)}}
+    @keyframes pulse-orange{0%,100%{box-shadow:0 0 0 0 rgba(255,160,0,.5)}50%{box-shadow:0 0 0 6px rgba(255,160,0,0)}}
+    .hero-status span{font-size:11px;font-weight:600}
+    .hero-edit-btn{margin-top:10px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:11px;font-weight:600;padding:4px 10px;border-radius:14px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:background .2s}
+    .hero-edit-btn:hover{background:rgba(255,255,255,.3)}
+    
+    /* EMPTY STATE ONBOARDING */
+    .empty-state-banner{margin:16px 20px;background:#FFFBEB;border:1.5px dashed #F59E0B;border-radius:14px;padding:18px;text-align:center}
+    .empty-state-banner h3{font-size:16px;font-weight:700;color:#92400E;margin-bottom:6px;font-family:var(--font-heading)}
+    .empty-state-banner p{font-size:12px;color:#B45309;line-height:1.5;margin-bottom:14px}
+    .empty-state-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+    .btn-primary{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);display:inline-flex;align-items:center;gap:6px;transition:background .2s}
+    .btn-primary:hover{background:#0D47A1}
+    .btn-secondary{background:#fff;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);display:inline-flex;align-items:center;gap:6px}
+    .btn-secondary:hover{background:#F1F5F9}
+
+    /* MAP */
+    .map-container{height:175px;background:#E2E8F0;position:relative;overflow:hidden}
+    .map-bg{width:100%;height:100%;background:linear-gradient(180deg,#CBD5E1 0%,#94A3B8 100%);position:relative}
+    .map-road-h{position:absolute;background:#64748B;height:12px;top:50%;left:0;right:0;transform:translateY(-50%)}
+    .map-road-v{position:absolute;background:#64748B;width:10px;left:40%;top:0;bottom:0}
+    .map-road-h2{position:absolute;background:#94A3B8;height:8px;top:28%;left:0;right:0}
+    .map-road-v2{position:absolute;background:#94A3B8;width:8px;left:72%;top:0;bottom:0}
+    .map-park{position:absolute;background:#86EFAC;border-radius:6px;top:10%;right:8%;width:20%;height:32%;opacity:.8}
+    .map-building{position:absolute;background:#CBD5E1;border-radius:4px}
+    .map-pin{position:absolute;font-size:26px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.4));animation:bounce 2s ease-in-out infinite}
+    @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+    .map-marker{position:absolute;background:var(--card);border-radius:8px;padding:3px 8px;font-size:10px;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.2);white-space:nowrap;display:flex;align-items:center;gap:4px;cursor:pointer;transition:transform .15s}
+    .map-marker:hover{transform:scale(1.05)}
+    .map-overlay-btn{position:absolute;bottom:10px;right:10px;background:var(--blue);color:#fff;border:none;border-radius:20px;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);box-shadow:0 2px 6px rgba(0,0,0,.2)}
+    
+    /* SOS BUTTON */
+    .sos-section{padding:20px 20px 14px;text-align:center}
+    .sos-label{font-size:11px;color:var(--muted);margin-bottom:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+    .sos-outer{width:140px;height:140px;border-radius:50%;background:linear-gradient(145deg,#FFCDD2,#FFEBEE);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;position:relative;animation:sos-pulse 3s ease-in-out infinite;cursor:pointer}
+    @keyframes sos-pulse{0%,100%{box-shadow:0 0 0 0 rgba(211,47,47,.25),0 0 0 0 rgba(211,47,47,.15)}50%{box-shadow:0 0 0 16px rgba(211,47,47,.18),0 0 0 32px rgba(211,47,47,.06)}}
+    .sos-btn{width:110px;height:110px;border-radius:50%;background:linear-gradient(145deg,#EF5350,var(--red),#B71C1C);border:none;cursor:pointer;font-family:var(--font-heading);font-weight:800;font-size:28px;color:#fff;letter-spacing:2px;display:flex;align-items:center;justify-content:center;position:relative;transition:transform .1s;box-shadow:0 6px 22px rgba(211,47,47,.55)}
+    .sos-btn:active{transform:scale(.94)}
+    .sos-hint{font-size:12px;color:var(--muted)}
+    
+    /* SECTION TITLE */
+    .section-title{font-family:var(--font-heading);font-weight:700;font-size:15px;padding:16px 20px 10px;color:var(--text);display:flex;align-items:center;justify-content:space-between}
+    .section-action{font-size:11px;color:var(--blue);font-weight:600;cursor:pointer;text-decoration:none}
+    
+    /* CARDS GRID */
+    .services-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 20px}
+    .service-card{background:var(--card);border-radius:14px;padding:14px;border:1px solid var(--border);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:10px}
+    .service-card:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.05)}
+    .svc-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+    .svc-info h4{font-size:13px;font-weight:700;margin-bottom:2px}
+    .svc-info p{font-size:11px;color:var(--muted)}
+    .svc-dist{font-size:10px;font-weight:700;color:var(--blue);margin-top:3px}
+    
+    /* INCIDENT STATUS CARD (DASHBOARD) */
+    .incident-bar{margin:14px 20px 0;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--red);border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .incident-bar-info h4{font-size:13px;font-weight:700;color:var(--red);margin-bottom:2px;display:flex;align-items:center;gap:5px}
+    .incident-bar-info p{font-size:11px;color:var(--muted)}
+    .incident-bar-badge{font-size:11px;font-weight:700;background:var(--light-red);color:var(--red);padding:4px 8px;border-radius:6px;white-space:nowrap}
+
+    /* AI CARD */
+    .ai-card{margin:16px 20px;background:linear-gradient(135deg,var(--blue) 0%,#0D47A1 100%);border-radius:16px;padding:18px;color:#fff;cursor:pointer;position:relative;overflow:hidden}
+    .ai-card::before{content:'✦';position:absolute;right:18px;top:18px;font-size:42px;opacity:.15}
+    .ai-card-label{font-size:11px;opacity:.85;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+    .ai-card-title{font-family:var(--font-heading);font-weight:700;font-size:18px;margin-bottom:6px}
+    .ai-card-desc{font-size:12px;opacity:.85;line-height:1.5}
+    .ai-card-btn{margin-top:12px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);display:inline-block}
+    
+    /* CONTACTS */
+    .contacts-row{display:flex;gap:12px;padding:0 20px;overflow-x:auto;scrollbar-width:none;align-items:flex-start}
+    .contacts-row::-webkit-scrollbar{display:none}
+    .contact-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;width:72px}
+    .contact-avatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff;border:3px solid var(--card);box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s}
+    .contact-chip:hover .contact-avatar{transform:scale(1.06)}
+    .contact-name{font-size:11px;font-weight:600;color:var(--text);text-align:center;line-height:1.2;word-break:break-word}
+    .contact-rel{font-size:9px;color:var(--muted);font-weight:500}
+    .contact-add{width:52px;height:52px;border-radius:50%;background:var(--card);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--muted);cursor:pointer;transition:border-color .2s;flex-shrink:0}
+    .contact-add:hover{border-color:var(--blue);color:var(--blue)}
+    .contacts-empty-hint{font-size:12px;color:var(--muted);padding:10px 0;font-style:italic}
+    
+    /* TIPS */
+    .tip-card{margin:16px 20px;background:var(--light-orange);border-left:4px solid var(--orange);border-radius:10px;padding:12px 16px}
+    .tip-card h4{font-size:13px;font-weight:700;color:var(--orange);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+    .tip-card p{font-size:12px;color:#92400E;line-height:1.5}
+    
+    /* ===== SOS EMERGENCY SCREEN ===== */
+    .emergency-screen{background:var(--emergency-bg);min-height:100vh;color:#fff;padding:0 0 80px}
+    .emg-header{background:#2D0A0A;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(211,47,47,.3)}
+    .emg-badge{background:var(--red);color:#fff;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:800;font-family:var(--font-heading);display:flex;align-items:center;gap:6px;animation:blink .8s step-end infinite}
+    @keyframes blink{50%{opacity:.4}}
+    .emg-time{font-family:var(--font-heading);font-weight:800;font-size:22px;color:#EF9A9A}
+    
+    .emg-banner{background:rgba(211,47,47,.15);border-bottom:1px solid rgba(211,47,47,.25);padding:12px 20px}
+    .emg-banner-user{font-size:15px;font-weight:700;color:#FFCDD2;font-family:var(--font-heading)}
+    .emg-banner-details{font-size:12px;color:#EF9A9A;margin-top:2px}
+    
+    .emg-map{height:160px;background:#142314;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    .emg-map-pulse{width:80px;height:80px;border-radius:50%;background:rgba(211,47,47,.25);display:flex;align-items:center;justify-content:center;animation:emg-ring 1.5s ease-out infinite}
+    @keyframes emg-ring{0%{box-shadow:0 0 0 0 rgba(211,47,47,.6)}100%{box-shadow:0 0 0 45px rgba(211,47,47,0)}}
+    .emg-map-dot{width:22px;height:22px;border-radius:50%;background:var(--red);border:3px solid #fff}
+    .emg-coords{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);padding:5px 14px;border-radius:20px;font-size:11px;color:#EF9A9A;font-family:var(--font-body);white-space:nowrap;border:1px solid rgba(211,47,47,.3)}
+    
+    .emg-status-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:rgba(255,255,255,.08)}
+    .emg-stat{background:#1A0A0A;padding:14px 10px;text-align:center}
+    .emg-stat-val{font-family:var(--font-heading);font-weight:800;font-size:19px;color:#EF9A9A}
+    .emg-stat-label{font-size:10px;color:rgba(255,255,255,.6);margin-top:3px}
+    
+    .emg-incident-box{margin:14px 20px;background:#2D0A0A;border:1px solid rgba(211,47,47,.35);border-radius:12px;padding:14px}
+    .emg-incident-title{font-size:12px;font-weight:700;color:#FFCDD2;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+    .emg-incident-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:6px}
+    .emg-incident-label{color:rgba(255,255,255,.6)}
+    .emg-incident-value{color:#fff;font-weight:600}
+    .emg-incident-desc{font-size:11px;color:rgba(255,255,255,.75);background:rgba(0,0,0,.3);padding:8px;border-radius:6px;margin-top:8px}
+    
+    .emg-responders{padding:14px 20px}
+    .emg-responders h3{font-size:13px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+    .responder-item{display:flex;align-items:center;gap:12px;background:#2D0A0A;border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid rgba(211,47,47,.2)}
+    .resp-icon{font-size:24px;flex-shrink:0}
+    .resp-info h4{font-size:13px;font-weight:600;color:#FFCDD2}
+    .resp-info p{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px}
+    .resp-eta{font-family:var(--font-heading);font-weight:700;font-size:15px;color:#4CAF50;margin-left:auto;text-align:right}
+    .resp-bar{height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:6px}
+    .resp-progress{height:100%;border-radius:2px;background:linear-gradient(90deg,#4CAF50,#8BC34A);animation:progress-pulse 2s infinite ease-in-out}
+    @keyframes progress-pulse{0%,100%{opacity:.8}50%{opacity:1}}
+    
+    .emg-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 20px 16px}
+    .emg-action-btn{background:#2D0A0A;border:1px solid rgba(211,47,47,.35);color:#FFCDD2;border-radius:12px;padding:12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);display:flex;align-items:center;justify-content:center;gap:6px;transition:background .2s}
+    .emg-action-btn:hover{background:#3D1414}
+    .emg-cancel{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:12px;padding:14px;font-size:13px;font-weight:700;cursor:pointer;width:calc(100% - 40px);margin:0 20px 20px;font-family:var(--font-body);display:block;text-align:center;transition:background .2s}
+    .emg-cancel:hover{background:rgba(255,255,255,.15)}
+    
+    /* ===== NEARBY SERVICES ===== */
+    .filter-row{display:flex;gap:8px;padding:14px 20px;overflow-x:auto;scrollbar-width:none}
+    .filter-chip{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card);font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);transition:all .2s;font-family:var(--font-body)}
+    .filter-chip.active{background:var(--blue);border-color:var(--blue);color:#fff}
+    .nearby-list{padding:0 20px}
+    .nearby-item{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid var(--border);transition:all .2s}
+    .nearby-item:hover{border-color:var(--blue);transform:translateY(-1px)}
+    .nearby-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+    .nearby-info h4{font-size:14px;font-weight:700;margin-bottom:2px}
+    .nearby-info p{font-size:12px;color:var(--muted)}
+    .nearby-dist{text-align:right;flex-shrink:0}
+    .nearby-dist span{font-family:var(--font-heading);font-weight:700;font-size:15px;color:var(--blue);display:block}
+    .nearby-dist small{font-size:10px;color:var(--muted)}
+    .status-open{color:var(--green);font-size:10px;font-weight:700;margin-top:2px}
+    .nearby-call-btn{background:var(--light-blue);color:var(--blue);border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;margin-top:4px}
+    
+    /* ===== AI ASSISTANT ===== */
+    .chat-container{display:flex;flex-direction:column;height:calc(100vh - 160px);min-height:380px}
+    .chat-messages{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin}
+    .msg{max-width:82%;display:flex;flex-direction:column;gap:3px}
+    .msg.user{align-self:flex-end;align-items:flex-end}
+    .msg.bot{align-self:flex-start;align-items:flex-start}
+    .msg-bubble{padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.5}
+    .msg.user .msg-bubble{background:var(--blue);color:#fff;border-radius:16px 16px 4px 16px}
+    .msg.bot .msg-bubble{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:16px 16px 16px 4px}
+    .msg-time{font-size:10px;color:var(--muted)}
+    .bot-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--blue),#0D47A1);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+    .bot-row{display:flex;align-items:flex-end;gap:8px}
+    .quick-replies{display:flex;gap:8px;padding:10px 20px;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+    .qr{flex-shrink:0;padding:7px 14px;border-radius:20px;border:1px solid var(--blue);background:var(--light-blue);color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);white-space:nowrap;transition:all .2s}
+    .qr:hover{background:var(--blue);color:#fff}
+    .chat-input-row{display:flex;gap:10px;padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0;background:var(--card)}
+    .chat-input{flex:1;border:1px solid var(--border);border-radius:24px;padding:10px 16px;font-size:13px;font-family:var(--font-body);outline:none;color:var(--text);background:var(--bg)}
+    .chat-input:focus{border-color:var(--blue)}
+    .send-btn{width:40px;height:40px;border-radius:50%;background:var(--blue);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .send-btn svg{width:16px;height:16px;fill:#fff}
+
+    /* ===== SETUP & PROFILE SCREEN ===== */
+    .setup-header{padding:20px 20px 12px;background:var(--card);border-bottom:1px solid var(--border)}
+    .setup-header h2{font-family:var(--font-heading);font-weight:800;font-size:22px;color:var(--text);margin-bottom:4px}
+    .setup-header p{font-size:12px;color:var(--muted);line-height:1.4}
+    .setup-quick-bar{display:flex;gap:8px;margin-top:12px}
+    
+    .setup-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin:14px 20px}
+    .setup-card-title{font-family:var(--font-heading);font-weight:700;font-size:14px;color:var(--text);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+    .form-group{margin-bottom:12px}
+    .form-group:last-child{margin-bottom:0}
+    .form-label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+    .form-input,.form-select,.form-textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font-body);background:var(--bg);color:var(--text);outline:none;transition:border-color .2s}
+    .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--blue);background:#fff}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    
+    /* REPEATER ITEM CARDS (Contacts & Services) */
+    .repeater-item{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;position:relative}
+    .repeater-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .repeater-tag{font-size:10px;font-weight:700;text-transform:uppercase;background:#E2E8F0;padding:2px 8px;border-radius:4px;color:var(--muted)}
+    .btn-delete{background:transparent;border:none;color:var(--red);cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:3px;padding:4px}
+    .btn-delete:hover{text-decoration:underline}
+    .btn-add-row{width:100%;border:1.5px dashed var(--border);background:#fff;border-radius:8px;padding:10px;font-size:12px;font-weight:600;color:var(--blue);cursor:pointer;font-family:var(--font-body);display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
+    .btn-add-row:hover{background:var(--light-blue);border-color:var(--blue)}
+    
+    .setup-actions{padding:10px 20px 30px;display:flex;flex-direction:column;gap:10px}
+    .btn-save-main{width:100%;background:linear-gradient(135deg,var(--orange) 0%,#E65100 100%);color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;font-family:var(--font-heading);cursor:pointer;box-shadow:0 4px 15px rgba(255,107,0,.35);transition:transform .1s,box-shadow .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn-save-main:active{transform:scale(.98)}
+    .btn-reset{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:11px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body)}
+    .btn-reset:hover{color:var(--red);border-color:var(--red)}
+
+    /* BOTTOM NAV */
+    .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:680px;background:var(--card);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 0 12px;z-index:200}
+    .bnav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 14px;border-radius:10px;transition:all .2s;border:none;background:transparent;font-family:var(--font-body);flex:1}
+    .bnav-item i{font-size:20px;color:var(--muted);transition:color .2s}
+    .bnav-item span{font-size:10px;color:var(--muted);font-weight:600;transition:color .2s}
+    .bnav-item.active i,.bnav-item.active span{color:var(--blue)}
+    .bnav-sos{background:var(--red);border-radius:50%;width:50px;height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border:3px solid var(--card);box-shadow:0 2px 10px rgba(211,47,47,.5);transition:transform .15s;margin-top:-20px;flex-shrink:0}
+    .bnav-sos:active{transform:scale(.9)}
+    .bnav-sos i{font-size:20px;color:#fff}
+    .bnav-sos span{font-size:8px;color:#fff;font-weight:800;letter-spacing:.5px}
+    
+    /* TOAST */
+    .toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%);background:#1F2937;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.35);display:flex;align-items:center;gap:8px;animation:fade-in-up .25s ease-out}
+    @keyframes fade-in-up{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <!-- TOP NAV -->
+  <div class="nav">
+    <div class="nav-logo" onclick="showScreen('dashboard')">🛡️ RoadSoS<span>AI</span></div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="ntab-dashboard" onclick="showScreen('dashboard',this)">Home</button>
+      <button class="nav-tab" id="ntab-nearby" onclick="showScreen('nearby',this)">Services</button>
+      <button class="nav-tab" id="ntab-assistant" onclick="showScreen('assistant',this)">AI Help</button>
+      <button class="nav-tab" id="ntab-profile" onclick="showScreen('profile',this)">⚙️ Setup</button>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN: DASHBOARD ===== -->
+  <div id="screen-dashboard" class="screen active">
+    <!-- Hero Header -->
+    <div class="hero-bar">
+      <div class="hero-greeting" id="hero-greeting">Good day 👋</div>
+      <div class="hero-name" id="hero-name">Welcome to RoadSOS</div>
+      <div class="hero-loc" id="hero-loc">📍 Location not configured</div>
+      <div class="hero-phone" id="hero-phone" style="display:none">📞 <span></span></div>
+      <div class="hero-status" id="hero-status">
+        <div class="status-dot warning" id="hero-status-dot"></div>
+        <span id="hero-status-text">Setup Required</span>
+      </div>
+      <div style="margin-top:8px">
+        <button class="hero-edit-btn" onclick="showScreen('profile')">✏️ Edit Profile & Data</button>
+      </div>
+    </div>
+    
+    <!-- Empty State Onboarding Card (Shown if profile not saved) -->
+    <div id="dashboard-empty-card" class="empty-state-banner" style="display:none">
+      <h3>🚀 Profile Setup Required</h3>
+      <p>RoadSOS is genuinely input-driven. No demo data is pre-populated. Enter your personal details, emergency services, distances, and contacts to activate live protection.</p>
+      <div class="empty-state-actions">
+        <button class="btn-primary" onclick="showScreen('profile')">⚙️ Open Data Setup</button>
+        <button class="btn-secondary" onclick="loadSampleTemplateData()">⚡ Fill Sample Demo Data</button>
+      </div>
+    </div>
+
+    <!-- Map Canvas -->
+    <div class="map-container">
+      <div class="map-bg">
+        <div class="map-road-h"></div>
+        <div class="map-road-v"></div>
+        <div class="map-road-h2"></div>
+        <div class="map-road-v2"></div>
+        <div class="map-park"></div>
+        <div class="map-building" style="left:10%;top:15%;width:8%;height:15%"></div>
+        <div class="map-building" style="left:10%;top:60%;width:10%;height:20%"></div>
+        <div class="map-building" style="right:15%;top:55%;width:8%;height:18%"></div>
+        
+        <!-- User Location Pin -->
+        <div class="map-pin" style="left:43%;top:38%">📍</div>
+        
+        <!-- Dynamic Map Service Markers Container -->
+        <div id="map-dynamic-markers"></div>
+
+        <button class="map-overlay-btn" onclick="showScreen('nearby')">View All Services →</button>
+      </div>
+    </div>
+    
+    <!-- SOS Activation Section -->
+    <div class="sos-section">
+      <div class="sos-label">Emergency SOS</div>
+      <div class="sos-outer" onclick="triggerSOS()">
+        <button class="sos-btn" id="main-sos-btn">SOS</button>
+      </div>
+      <div class="sos-hint">Hold or tap to activate emergency mode with your profile</div>
+    </div>
+    
+    <!-- Incident Quick Info Bar -->
+    <div class="incident-bar" id="dashboard-incident-bar">
+      <div class="incident-bar-info">
+        <h4 id="dash-inc-type">⚠️ Incident: Not Reported</h4>
+        <p id="dash-inc-desc">Condition: Safe / Unknown · 1 person involved</p>
+      </div>
+      <button class="btn-secondary" style="padding:6px 10px;font-size:11px" onclick="showScreen('profile')">Configure</button>
+    </div>
+
+    <!-- Nearby Emergency Services Summary Grid -->
+    <div class="section-title">
+      <span>⚡ Nearby Emergency Services</span>
+      <span class="section-action" onclick="showScreen('nearby')">See All →</span>
+    </div>
+    <div class="services-grid" id="dashboard-services-grid">
+      <!-- Generated Dynamically -->
+    </div>
+    
+    <!-- AI Help Quick Access Card -->
+    <div class="ai-card" onclick="showScreen('assistant')">
+      <div class="ai-card-label">✦ AI First Aid & Guide</div>
+      <div class="ai-card-title">Instant Emergency Guidance</div>
+      <div class="ai-card-desc">Ask about injuries, bleeding, fractures, or step-by-step accident response tailored to your situation.</div>
+      <div class="ai-card-btn">Open AI Help →</div>
+    </div>
+    
+    <!-- Emergency Contacts Row -->
+    <div class="section-title">
+      <span>👥 Emergency Contacts</span>
+      <span class="section-action" onclick="showScreen('profile')">+ Manage Contacts</span>
+    </div>
+    <div class="contacts-row" id="dashboard-contacts-row">
+      <!-- Generated Dynamically -->
+    </div>
+    
+    <!-- Safety Tip Card -->
+    <div class="tip-card" id="dashboard-tip-card">
+      <h4>💡 Safety Tip of the Day</h4>
+      <p id="dashboard-tip-text">No custom safety tip configured. You can set your safety tip in Setup / Profile.</p>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN: EMERGENCY SOS ===== -->
+  <div id="screen-emergency" class="screen">
+    <div class="emergency-screen">
+      <div class="emg-header">
+        <div class="emg-badge">🚨 EMERGENCY ACTIVE</div>
+        <div class="emg-time" id="emg-timer">00:00</div>
+      </div>
+
+      <div class="emg-banner">
+        <div class="emg-banner-user" id="emg-user-info">Emergency Call for: User</div>
+        <div class="emg-banner-details" id="emg-user-contact">Contact: Not specified</div>
+      </div>
+
+      <div class="emg-map">
+        <div class="emg-map-pulse"><div class="emg-map-dot"></div></div>
+        <div class="emg-coords" id="emg-coords">📍 Live Location Tracking</div>
+      </div>
+
+      <div class="emg-status-grid">
+        <div class="emg-stat">
+          <div class="emg-stat-val" id="emg-stat-contacts">0</div>
+          <div class="emg-stat-label">Contacts Notified</div>
+        </div>
+        <div class="emg-stat">
+          <div class="emg-stat-val" id="emg-stat-responders">0</div>
+          <div class="emg-stat-label">Services Dispatched</div>
+        </div>
+        <div class="emg-stat">
+          <div class="emg-stat-val" style="color:#4CAF50">LIVE</div>
+          <div class="emg-stat-label">GPS Tracking</div>
+        </div>
+      </div>
+
+      <!-- Incident Details Box -->
+      <div class="emg-incident-box">
+        <div class="emg-incident-title">📋 Active Incident Details</div>
+        <div class="emg-incident-row">
+          <div><span class="emg-incident-label">Type: </span><span class="emg-incident-value" id="emg-inc-type">Accident</span></div>
+          <div><span class="emg-incident-label">People Involved: </span><span class="emg-incident-value" id="emg-inc-people">1</span></div>
+        </div>
+        <div class="emg-incident-row">
+          <div><span class="emg-incident-label">Condition: </span><span class="emg-incident-value" id="emg-inc-condition">Unknown</span></div>
+          <div><span class="emg-incident-label">Primary Contact: </span><span class="emg-incident-value" id="emg-inc-contact">None</span></div>
+        </div>
+        <div class="emg-incident-desc" id="emg-inc-notes">No additional notes provided.</div>
+      </div>
+
+      <!-- Responders List -->
+      <div class="emg-responders">
+        <h3>Responders En Route (From Your Services)</h3>
+        <div id="emg-responders-list">
+          <!-- Dynamically generated from user's services -->
+        </div>
+      </div>
+
+      <!-- Emergency Quick Actions -->
+      <div class="emg-actions">
+        <button class="emg-action-btn" onclick="showScreen('assistant')">🤖 AI First Aid</button>
+        <button class="emg-action-btn" id="emg-call-contact-btn" onclick="callPrimaryContact()">🆘 Call Contact</button>
+        <button class="emg-action-btn" onclick="shareEmergencyLocation()">📍 Share Location</button>
+        <button class="emg-action-btn" onclick="callNearestService()">📞 Call Dispatch</button>
+      </div>
+
+      <button class="emg-cancel" onclick="cancelSOS()">✕ Cancel Emergency (I'm Safe)</button>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN: NEARBY SERVICES ===== -->
+  <div id="screen-nearby" class="screen">
+    <div style="padding:16px 20px 8px;display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <div style="font-family:var(--font-heading);font-weight:700;font-size:20px">Nearby Services</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="nearby-location-subtitle">📍 Location not configured</div>
+      </div>
+      <button class="btn-secondary" style="font-size:11px;padding:6px 10px" onclick="showScreen('profile')">+ Edit Services</button>
+    </div>
+
+    <!-- Filter Buttons -->
+    <div class="filter-row">
+      <button class="filter-chip active" onclick="filterNearby('all',this)">All</button>
+      <button class="filter-chip" onclick="filterNearby('hospital',this)">🏥 Hospitals</button>
+      <button class="filter-chip" onclick="filterNearby('ambulance',this)">🚑 Ambulance</button>
+      <button class="filter-chip" onclick="filterNearby('police',this)">👮 Police</button>
+      <button class="filter-chip" onclick="filterNearby('rescue',this)">🔧 Rescue</button>
+    </div>
+
+    <!-- List of Services -->
+    <div class="nearby-list" id="nearby-list-container">
+      <!-- Populated Dynamically -->
+    </div>
+  </div>
+
+  <!-- ===== SCREEN: AI ASSISTANT ===== -->
+  <div id="screen-assistant" class="screen">
+    <div style="padding:16px 20px 0;border-bottom:1px solid var(--border);padding-bottom:12px;display:flex;align-items:center;gap:10px">
+      <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--blue),#0D47A1);display:flex;align-items:center;justify-content:center;font-size:18px">🤖</div>
+      <div>
+        <div style="font-family:var(--font-heading);font-weight:700;font-size:16px">RoadSoS Emergency AI</div>
+        <div style="font-size:11px;color:var(--green);font-weight:600">● Ready to assist</div>
+      </div>
+      <div style="margin-left:auto;background:var(--light-orange);border:1px solid var(--orange);border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;color:var(--orange)">Instant Guidance</div>
+    </div>
+    <div class="chat-container">
+      <div class="chat-messages" id="chat-msgs">
+        <div class="msg bot">
+          <div class="bot-row">
+            <div class="bot-avatar">🤖</div>
+            <div class="msg-bubble" id="ai-welcome-msg">Hello! I am your RoadSoS assistant. I am ready to guide you through first aid, injury handling, vehicle recovery, and road safety. What do you need help with?</div>
+          </div>
+          <div class="msg-time">Just now</div>
+        </div>
+      </div>
+      <div class="quick-replies">
+        <button class="qr" onclick="sendQuick('How to treat severe bleeding from a wound?')">🩸 Treat bleeding</button>
+        <button class="qr" onclick="sendQuick('A person is unconscious after a collision')">😵 Unconscious person</button>
+        <button class="qr" onclick="sendQuick('How to tell if a bone is fractured?')">🦴 Fracture signs</button>
+        <button class="qr" onclick="sendQuick('Checklist of steps after a road accident')">🚗 Accident checklist</button>
+        <button class="qr" onclick="sendQuick('My vehicle broke down safely on the highway')">🔧 Breakdown advice</button>
+      </div>
+      <div class="chat-input-row">
+        <input class="chat-input" id="chat-input" placeholder="Ask about first aid, injuries, emergency steps..." onkeydown="if(event.key==='Enter')sendMessage()">
+        <button class="send-btn" onclick="sendMessage()">
+          <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN: SETUP & PROFILE ===== -->
+  <div id="screen-profile" class="screen">
+    <div class="setup-header">
+      <h2>Emergency Profile & Data Setup</h2>
+      <p>Every piece of data on RoadSOS is driven by your input. Fill in your details below and click <strong>Save Emergency Profile</strong>.</p>
+      <div class="setup-quick-bar">
+        <button class="btn-secondary" style="font-size:11px" onclick="loadSampleTemplateData()">⚡ Fill Sample Demo Data</button>
+        <button class="btn-reset" style="font-size:11px;padding:6px 12px" onclick="resetAllData()">🗑️ Clear All Data</button>
+      </div>
+    </div>
+
+    <form id="profileSetupForm" onsubmit="handleSaveProfile(event)">
+      <!-- 1. PERSONAL INFORMATION -->
+      <div class="setup-card">
+        <div class="setup-card-title">
+          <span>👤 1. Personal Information</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="inp-user-name">Full Name *</label>
+          <input class="form-input" id="inp-user-name" placeholder="Enter your full name" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="inp-user-phone">Phone Number *</label>
+            <input class="form-input" id="inp-user-phone" type="tel" placeholder="Your phone number" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="inp-user-location">Current Location *</label>
+            <input class="form-input" id="inp-user-location" placeholder="City, Area or Highway mile marker" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. INCIDENT INFORMATION -->
+      <div class="setup-card">
+        <div class="setup-card-title">
+          <span>⚠️ 2. Current Incident Information</span>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="inp-inc-type">Incident Type</label>
+            <select class="form-select" id="inp-inc-type">
+              <option value="Road Accident">Road Accident</option>
+              <option value="Vehicle Breakdown">Vehicle Breakdown</option>
+              <option value="Medical Emergency">Medical Emergency</option>
+              <option value="Road Hazard">Road Hazard</option>
+              <option value="Flat Tire">Flat Tire</option>
+              <option value="Other">Other Emergency</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="inp-inc-condition">Condition / Injury Details</label>
+            <select class="form-select" id="inp-inc-condition">
+              <option value="No injury - Everyone safe">No injury - Everyone safe</option>
+              <option value="Minor injuries / scrapes">Minor injuries / scrapes</option>
+              <option value="Possible fracture">Possible fracture</option>
+              <option value="Severe bleeding">Severe bleeding</option>
+              <option value="Unconscious person">Unconscious person</option>
+              <option value="Unknown condition">Unknown condition</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="inp-inc-people">People Involved</label>
+            <input class="form-input" id="inp-inc-people" type="number" min="1" max="50" value="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="inp-inc-notes">Additional Notes</label>
+            <input class="form-input" id="inp-inc-notes" placeholder="e.g. Car on highway shoulder, engine smoking">
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. EMERGENCY CONTACTS -->
+      <div class="setup-card">
+        <div class="setup-card-title">
+          <span>👥 3. Emergency Contacts</span>
+          <span style="font-size:11px;color:var(--muted)">Notified in SOS mode</span>
+        </div>
+        <div id="contacts-repeater-container">
+          <!-- Dynamic contact rows -->
+        </div>
+        <button type="button" class="btn-add-row" onclick="addContactRow()">
+          + Add Emergency Contact
+        </button>
+      </div>
+
+      <!-- 4. NEARBY EMERGENCY SERVICES -->
+      <div class="setup-card">
+        <div class="setup-card-title">
+          <span>⚡ 4. Nearby Emergency Services & Distances</span>
+          <span style="font-size:11px;color:var(--muted)">Hospitals, Ambulance, Police, Rescue</span>
+        </div>
+        <div id="services-repeater-container">
+          <!-- Dynamic service rows -->
+        </div>
+        <button type="button" class="btn-add-row" onclick="addServiceRow()">
+          + Add Emergency Service
+        </button>
+      </div>
+
+      <!-- 5. SAFETY TIP -->
+      <div class="setup-card">
+        <div class="setup-card-title">
+          <span>💡 5. Configurable Safety Tip</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="inp-safety-tip">Safety Tip of the Day</label>
+          <textarea class="form-textarea" id="inp-safety-tip" rows="2" placeholder="Enter a road safety tip to display on the dashboard..."></textarea>
+        </div>
+      </div>
+
+      <!-- SAVE ACTIONS -->
+      <div class="setup-actions">
+        <button type="submit" class="btn-save-main">
+          💾 Save Emergency Profile
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- BOTTOM NAV BAR -->
+  <div class="bottom-nav">
+    <button class="bnav-item active" id="bnav-dashboard" onclick="showScreen('dashboard',this)">
+      <i class="ti ti-home"></i><span>Home</span>
+    </button>
+    <button class="bnav-item" id="bnav-nearby" onclick="showScreen('nearby',this)">
+      <i class="ti ti-map-pin"></i><span>Services</span>
+    </button>
+    <div class="bnav-sos" onclick="triggerSOS()" title="Emergency SOS">
+      <i class="ti ti-alert-triangle"></i>
+      <span>SOS</span>
+    </div>
+    <button class="bnav-item" id="bnav-assistant" onclick="showScreen('assistant',this)">
+      <i class="ti ti-robot"></i><span>AI Help</span>
+    </button>
+    <button class="bnav-item" id="bnav-profile" onclick="showScreen('profile',this)">
+      <i class="ti ti-user-cog"></i><span>Setup</span>
+    </button>
+  </div>
+</div>
+
+<script>
+/**
+ * RoadSOS — Genuine Input-Driven Engine
+ * All user data, contacts, emergency services, distances, safety tips,
+ * and incident parameters are driven strictly by user input stored in localStorage.
+ * No hardcoded demo values are used on initial load.
+ */
+
+const STORAGE_KEY = 'roadsos_data_v2';
+
+// Clean initial data template
+const DEFAULT_EMPTY_STATE = {
+  profile: {
+    name: '',
+    phone: '',
+    location: ''
+  },
+  incident: {
+    type: 'Road Accident',
+    condition: 'No injury - Everyone safe',
+    people: 1,
+    notes: ''
+  },
+  contacts: [],
+  services: [],
+  safetyTip: ''
+};
+
+// Current in-memory state
+var roadData = loadStoredData();
+var sosTimerInterval = null;
+var sosSeconds = 0;
+var currentNearbyFilter = 'all';
+
+// Load data from localStorage
+function loadStoredData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_EMPTY_STATE));
+    const parsed = JSON.parse(raw);
+    return {
+      profile: Object.assign({}, DEFAULT_EMPTY_STATE.profile, parsed.profile || {}),
+      incident: Object.assign({}, DEFAULT_EMPTY_STATE.incident, parsed.incident || {}),
+      contacts: Array.isArray(parsed.contacts) ? parsed.contacts : [],
+      services: Array.isArray(parsed.services) ? parsed.services : [],
+      safetyTip: typeof parsed.safetyTip === 'string' ? parsed.safetyTip : ''
+    };
+  } catch (e) {
+    console.error("Error reading localStorage:", e);
+    return JSON.parse(JSON.stringify(DEFAULT_EMPTY_STATE));
+  }
+}
+
+// Save data to localStorage
+function persistData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(roadData));
+}
+
+// HTML escape helper
+function escapeHTML(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+  }[c]));
+}
+
+// Generate unique IDs
+function generateId() {
+  return 'id_' + Math.random().toString(36).substr(2, 9);
+}
+
+// Avatar color assignment
+function getAvatarColor(idx) {
+  const colors = ['#E91E63', '#FF6B00', '#1565C0', '#2E7D32', '#6A1B9A', '#00838F', '#D84315'];
+  return colors[idx % colors.length];
+}
+
+// Service icon helper
+function getServiceIcon(type) {
+  switch (type) {
+    case 'hospital': return { emoji: '🏥', bg: '#FFEBEE', label: 'Hospital' };
+    case 'ambulance': return { emoji: '🚑', bg: '#E8F5E9', label: 'Ambulance' };
+    case 'police': return { emoji: '👮', bg: '#E3F0FF', label: 'Police' };
+    case 'rescue': return { emoji: '🔧', bg: '#FFF3E8', label: 'Rescue' };
+    default: return { emoji: '🚨', bg: '#F1F5F9', label: 'Emergency' };
+  }
+}
+
+// Navigation screen switcher
+function showScreen(screenId, navElement) {
+  // Hide all screens
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  
+  // Show target screen
+  const target = document.getElementById('screen-' + screenId);
+  if (target) target.classList.add('active');
+
+  // Update top tabs
+  document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+  const topTab = document.getElementById('ntab-' + screenId);
+  if (topTab) topTab.classList.add('active');
+
+  // Update bottom nav
+  document.querySelectorAll('.bnav-item').forEach(btn => btn.classList.remove('active'));
+  const bottomBtn = document.getElementById('bnav-' + screenId);
+  if (bottomBtn) bottomBtn.classList.add('active');
+
+  // If opening profile, populate the form
+  if (screenId === 'profile') {
+    populateProfileForm();
+  } else if (screenId === 'nearby') {
+    renderNearbyServices();
+  } else if (screenId === 'dashboard') {
+    renderDashboard();
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Toast alert notification
+function showToast(message) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `<span>🛡️</span> <span>${escapeHTML(message)}</span>`;
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity .3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 2800);
+}
+
+// Check if user has entered data
+function isProfileConfigured() {
+  return Boolean(roadData.profile.name && roadData.profile.location);
+}
+
+// Render Dashboard
+function renderDashboard() {
+  const configured = isProfileConfigured();
+  const p = roadData.profile;
+  const inc = roadData.incident;
+
+  // Hero section
+  const heroName = document.getElementById('hero-name');
+  const heroLoc = document.getElementById('hero-loc');
+  const heroPhone = document.getElementById('hero-phone');
+  const heroGreeting = document.getElementById('hero-greeting');
+  const heroStatusDot = document.getElementById('hero-status-dot');
+  const heroStatusText = document.getElementById('hero-status-text');
+  const emptyCard = document.getElementById('dashboard-empty-card');
+
+  if (configured) {
+    heroName.textContent = p.name;
+    heroLoc.innerHTML = `📍 ${escapeHTML(p.location)}`;
+    if (p.phone) {
+      heroPhone.style.display = 'flex';
+      heroPhone.querySelector('span').textContent = p.phone;
+    } else {
+      heroPhone.style.display = 'none';
+    }
+    heroGreeting.textContent = 'Welcome back 👋';
+    heroStatusDot.className = 'status-dot';
+    heroStatusText.textContent = 'Active & Protected';
+    emptyCard.style.display = 'none';
+  } else {
+    heroName.textContent = 'Welcome to RoadSOS';
+    heroLoc.innerHTML = '📍 Location not configured';
+    heroPhone.style.display = 'none';
+    heroGreeting.textContent = 'Get started 👋';
+    heroStatusDot.className = 'status-dot warning';
+    heroStatusText.textContent = 'Setup Required';
+    emptyCard.style.display = 'block';
+  }
+
+  // Incident Bar
+  const incTypeEl = document.getElementById('dash-inc-type');
+  const incDescEl = document.getElementById('dash-inc-desc');
+  if (inc && inc.type) {
+    incTypeEl.textContent = `⚠️ Incident: ${inc.type}`;
+    incDescEl.textContent = `Condition: ${inc.condition || 'Not specified'} · ${inc.people || 1} people involved`;
+  } else {
+    incTypeEl.textContent = '⚠️ Incident: Ready & Monitoring';
+    incDescEl.textContent = 'No active emergency reported';
+  }
+
+  // Dynamic Map Markers
+  renderMapMarkers();
+
+  // Services Grid
+  renderServicesGrid();
+
+  // Contacts Row
+  renderContactsRow();
+
+  // Safety Tip
+  const tipText = document.getElementById('dashboard-tip-text');
+  if (roadData.safetyTip && roadData.safetyTip.trim()) {
+    tipText.textContent = roadData.safetyTip.trim();
+  } else if (configured) {
+    tipText.textContent = 'Tip: Always keep an emergency contact on speed dial and inspect tire pressure before long trips.';
+  } else {
+    tipText.textContent = 'No custom safety tip configured. Enter your custom tip in Setup.';
+  }
+
+  // Update AI Greeting
+  const aiWelcome = document.getElementById('ai-welcome-msg');
+  if (configured) {
+    aiWelcome.textContent = `Hello ${p.name}! 🛡️ I am your RoadSoS AI assistant. I have your location as ${p.location}. How can I assist with your safety or vehicle right now?`;
+  } else {
+    aiWelcome.textContent = `Hello! 🛡️ I'm your RoadSoS AI assistant. Please configure your profile in Setup so I can provide location-specific emergency guidance. How can I help right now?`;
+  }
+}
+
+// Render dynamic service markers on the simulated map
+function renderMapMarkers() {
+  const container = document.getElementById('map-dynamic-markers');
+  container.innerHTML = '';
+
+  if (!roadData.services || roadData.services.length === 0) {
+    return;
+  }
+
+  // Define preset coordinate slots for aesthetic placement on the graphic road map
+  const markerSlots = [
+    { top: '15%', left: '12%', color: '#C62828', bg: '#FFEBEE' },
+    { top: '45%', right: '6%', color: '#1565C0', bg: '#E3F0FF' },
+    { top: '68%', left: '55%', color: '#2E7D32', bg: '#E8F5E9' },
+    { top: '18%', right: '14%', color: '#E65100', bg: '#FFF3E8' }
+  ];
+
+  roadData.services.slice(0, 4).forEach((svc, index) => {
+    const slot = markerSlots[index];
+    const iconData = getServiceIcon(svc.type);
+    const marker = document.createElement('div');
+    marker.className = 'map-marker';
+    marker.style.top = slot.top;
+    if (slot.left) marker.style.left = slot.left;
+    if (slot.right) marker.style.right = slot.right;
+    marker.style.background = slot.bg;
+    marker.style.color = slot.color;
+
+    const shortName = svc.name.length > 12 ? svc.name.substring(0, 11) + '…' : svc.name;
+    marker.innerHTML = `${iconData.emoji} ${escapeHTML(shortName)} ${Number(svc.distance || 0).toFixed(1)}km`;
+    marker.onclick = () => showScreen('nearby');
+    container.appendChild(marker);
+  });
+}
+
+// Render the 4 category service cards on Dashboard
+function renderServicesGrid() {
+  const grid = document.getElementById('dashboard-services-grid');
+  grid.innerHTML = '';
+
+  const categories = [
+    { type: 'hospital', label: 'Hospitals', icon: '🏥', bg: '#FFEBEE' },
+    { type: 'ambulance', label: 'Ambulance', icon: '🚑', bg: '#E8F5E9' },
+    { type: 'police', label: 'Police', icon: '👮', bg: '#E3F0FF' },
+    { type: 'rescue', label: 'Rescue', icon: '🔧', bg: '#FFF3E8' }
+  ];
+
+  categories.forEach(cat => {
+    const matching = roadData.services.filter(s => s.type === cat.type);
+    const count = matching.length;
+    
+    let subtitle = count === 0 ? 'None configured' : `${count} entered`;
+    let distText = '→ Tap to add';
+
+    if (count > 0) {
+      // Find lowest distance entered
+      const sorted = [...matching].sort((a, b) => Number(a.distance || 0) - Number(b.distance || 0));
+      const nearest = sorted[0];
+      distText = `→ ${Number(nearest.distance || 0).toFixed(1)} km`;
+      subtitle = nearest.name.length > 14 ? nearest.name.substring(0, 13) + '…' : nearest.name;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'service-card';
+    card.onclick = () => {
+      currentNearbyFilter = cat.type;
+      showScreen('nearby');
+    };
+    card.innerHTML = `
+      <div class="svc-icon" style="background:${cat.bg}">${cat.icon}</div>
+      <div class="svc-info">
+        <h4>${cat.label}</h4>
+        <p>${escapeHTML(subtitle)}</p>
+        <div class="svc-dist">${escapeHTML(distText)}</div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// Render Emergency Contacts horizontal chip list
+function renderContactsRow() {
+  const container = document.getElementById('dashboard-contacts-row');
+  container.innerHTML = '';
+
+  if (!roadData.contacts || roadData.contacts.length === 0) {
+    const hint = document.createElement('div');
+    hint.className = 'contacts-empty-hint';
+    hint.textContent = 'No emergency contacts entered yet.';
+    container.appendChild(hint);
+  } else {
+    roadData.contacts.forEach((c, idx) => {
+      const chip = document.createElement('div');
+      chip.className = 'contact-chip';
+      const initial = (c.name || 'C').charAt(0).toUpperCase();
+      const color = getAvatarColor(idx);
+
+      chip.innerHTML = `
+        <div class="contact-avatar" style="background:${color}">${escapeHTML(initial)}</div>
+        <div class="contact-name">${escapeHTML(c.name || 'Contact')}</div>
+        <div class="contact-rel">(${escapeHTML(c.relation || 'Emergency')})</div>
+      `;
+      chip.onclick = () => {
+        showToast(`Contact: ${c.name} (${c.relation}) — ${c.phone || 'No phone set'}`);
+      };
+      container.appendChild(chip);
+    });
+  }
+
+  // Add "+" chip
+  const addBtn = document.createElement('div');
+  addBtn.className = 'contact-add';
+  addBtn.title = 'Add / Edit Contacts';
+  addBtn.textContent = '+';
+  addBtn.onclick = () => showScreen('profile');
+  container.appendChild(addBtn);
+}
+
+// Render Nearby Services Screen
+function renderNearbyServices() {
+  const container = document.getElementById('nearby-list-container');
+  const locSubtitle = document.getElementById('nearby-location-subtitle');
+  container.innerHTML = '';
+
+  locSubtitle.textContent = roadData.profile.location 
+    ? `📍 ${roadData.profile.location}`
+    : '📍 Location not configured';
+
+  // Apply active category filter tab
+  document.querySelectorAll('.filter-chip').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.toLowerCase().includes(currentNearbyFilter) || (currentNearbyFilter === 'all' && btn.textContent === 'All'));
+  });
+
+  const filtered = currentNearbyFilter === 'all' 
+    ? roadData.services 
+    : roadData.services.filter(s => s.type === currentNearbyFilter);
+
+  if (!filtered || filtered.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:40px 20px;background:var(--card);border-radius:14px;border:1px dashed var(--border)">
+        <div style="font-size:36px;margin-bottom:10px">🔍</div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:4px">No ${currentNearbyFilter === 'all' ? 'services' : currentNearbyFilter + ' services'} entered</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">You can add your local emergency hospitals, police, ambulances, and towing services in Setup.</div>
+        <button class="btn-primary" onclick="showScreen('profile')">⚙️ Add Services in Setup</button>
+      </div>
+    `;
+    return;
+  }
+
+  // Sort by distance
+  const sorted = [...filtered].sort((a, b) => Number(a.distance || 0) - Number(b.distance || 0));
+
+  sorted.forEach(svc => {
+    const iconData = getServiceIcon(svc.type);
+    const distNum = Number(svc.distance || 0);
+    const estTime = Math.max(1, Math.round(distNum * 2.8));
+
+    const item = document.createElement('div');
+    item.className = 'nearby-item';
+    item.innerHTML = `
+      <div class="nearby-icon" style="background:${iconData.bg}">${iconData.emoji}</div>
+      <div class="nearby-info" style="flex:1">
+        <h4>${escapeHTML(svc.name)}</h4>
+        <p>${escapeHTML(svc.subtitle || iconData.label)}</p>
+        <div class="status-open">● ${escapeHTML(svc.status || 'AVAILABLE')}</div>
+      </div>
+      <div class="nearby-dist">
+        <span>${distNum.toFixed(1)} km</span>
+        <small>~${estTime} min</small>
+        ${svc.phone ? `<br><button class="nearby-call-btn" onclick="callPhone('${escapeHTML(svc.phone)}')">📞 Call</button>` : ''}
+      </div>
+    `;
+    container.appendChild(item);
+  });
+}
+
+function filterNearby(type, btn) {
+  currentNearbyFilter = type;
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderNearbyServices();
+}
+
+function callPhone(num) {
+  showToast(`Simulated Call to: ${num}`);
+}
+
+// ===== SOS SCREEN LOGIC =====
+function triggerSOS() {
+  if (!isProfileConfigured()) {
+    showToast('Please set up your profile and location first');
+    showScreen('profile');
+    return;
+  }
+
+  const p = roadData.profile;
+  const inc = roadData.incident;
+
+  // Set User Details
+  document.getElementById('emg-user-info').textContent = `Emergency Alert: ${p.name}`;
+  document.getElementById('emg-user-contact').textContent = `Phone: ${p.phone || 'Not set'} · Location: ${p.location}`;
+  document.getElementById('emg-coords').textContent = `📍 ${p.location} — Sharing Live Location`;
+
+  // Set Active Incident Info
+  document.getElementById('emg-inc-type').textContent = inc.type || 'Road Accident';
+  document.getElementById('emg-inc-condition').textContent = inc.condition || 'Unknown';
+  document.getElementById('emg-inc-people').textContent = String(inc.people || 1);
+  document.getElementById('emg-inc-notes').textContent = inc.notes ? `Notes: ${inc.notes}` : 'No additional incident notes provided.';
+
+  // Primary Contact
+  const primaryContact = roadData.contacts.length > 0 ? roadData.contacts[0] : null;
+  document.getElementById('emg-inc-contact').textContent = primaryContact 
+    ? `${primaryContact.name} (${primaryContact.relation})` 
+    : 'None entered';
+
+  // Stats
+  document.getElementById('emg-stat-contacts').textContent = String(roadData.contacts.length);
+  document.getElementById('emg-stat-responders').textContent = String(Math.min(roadData.services.length, 3));
+
+  // En-Route Responders from user's services
+  const respondersContainer = document.getElementById('emg-responders-list');
+  respondersContainer.innerHTML = '';
+
+  const dispatchable = roadData.services.filter(s => s.type === 'ambulance' || s.type === 'police' || s.type === 'hospital');
+  const pool = dispatchable.length > 0 ? dispatchable : roadData.services;
+
+  if (pool.length === 0) {
+    respondersContainer.innerHTML = `
+      <div style="font-size:12px;color:rgba(255,255,255,.6);padding:10px;background:#2D0A0A;border-radius:10px">
+        No specific emergency responders entered in your profile services. Alert has been broadcast to standard emergency dispatch.
+      </div>
+    `;
+  } else {
+    pool.slice(0, 3).forEach((svc, index) => {
+      const iconData = getServiceIcon(svc.type);
+      const dist = Number(svc.distance || 1.5);
+      const etaMinutes = Math.max(2, Math.round(dist * 3.2));
+      const progressPercent = Math.max(30, 85 - index * 20);
+
+      const item = document.createElement('div');
+      item.className = 'responder-item';
+      item.innerHTML = `
+        <div class="resp-icon">${iconData.emoji}</div>
+        <div class="resp-info" style="flex:1">
+          <h4>${escapeHTML(svc.name)}</h4>
+          <p>${escapeHTML(svc.subtitle || iconData.label)} · ${dist.toFixed(1)} km away</p>
+          <div class="resp-bar">
+            <div class="resp-progress" style="width:${progressPercent}%"></div>
+          </div>
+        </div>
+        <div class="resp-eta">${etaMinutes} min<br><small style="font-size:10px;color:rgba(255,255,255,.6);font-weight:normal">ETA</small></div>
+      `;
+      respondersContainer.appendChild(item);
+    });
+  }
+
+  // Start SOS Timer
+  sosSeconds = 0;
+  if (sosTimerInterval) clearInterval(sosTimerInterval);
+  document.getElementById('emg-timer').textContent = '00:00';
+  sosTimerInterval = setInterval(() => {
+    sosSeconds++;
+    const mins = String(Math.floor(sosSeconds / 60)).padStart(2, '0');
+    const secs = String(sosSeconds % 60).padStart(2, '0');
+    document.getElementById('emg-timer').textContent = `${mins}:${secs}`;
+  }, 1000);
+
+  // Switch to SOS screen
+  showScreen('emergency');
+  showToast('🚨 SOS ACTIVATED! Emergency dispatch notified with your details.');
+}
+
+function cancelSOS() {
+  if (sosTimerInterval) {
+    clearInterval(sosTimerInterval);
+    sosTimerInterval = null;
+  }
+  showScreen('dashboard');
+  showToast('SOS cancelled. Status returned to normal.');
+}
+
+function callPrimaryContact() {
+  if (roadData.contacts.length > 0) {
+    const c = roadData.contacts[0];
+    showToast(`Dialing primary contact: ${c.name} (${c.phone || 'No phone set'})`);
+  } else {
+    showToast('No emergency contacts entered. Please add contacts in Setup.');
+  }
+}
+
+function shareEmergencyLocation() {
+  const loc = roadData.profile.location || 'Current location';
+  showToast(`Live coordinates & location shared: "${loc}"`);
+}
+
+function callNearestService() {
+  if (roadData.services.length > 0) {
+    const s = roadData.services[0];
+    showToast(`Calling Dispatch: ${s.name} (${s.phone || 'Emergency line'})`);
+  } else {
+    showToast('Calling General Emergency Dispatch (108/911)');
+  }
+}
+
+// ===== SETUP & PROFILE FORM MANAGEMENT =====
+
+function populateProfileForm() {
+  // Populate Personal Info
+  document.getElementById('inp-user-name').value = roadData.profile.name || '';
+  document.getElementById('inp-user-phone').value = roadData.profile.phone || '';
+  document.getElementById('inp-user-location').value = roadData.profile.location || '';
+
+  // Populate Incident
+  document.getElementById('inp-inc-type').value = roadData.incident.type || 'Road Accident';
+  document.getElementById('inp-inc-condition').value = roadData.incident.condition || 'No injury - Everyone safe';
+  document.getElementById('inp-inc-people').value = roadData.incident.people || 1;
+  document.getElementById('inp-inc-notes').value = roadData.incident.notes || '';
+
+  // Populate Safety Tip
+  document.getElementById('inp-safety-tip').value = roadData.safetyTip || '';
+
+  // Render Contacts Repeater
+  renderContactsRepeater();
+
+  // Render Services Repeater
+  renderServicesRepeater();
+}
+
+function renderContactsRepeater() {
+  const container = document.getElementById('contacts-repeater-container');
+  container.innerHTML = '';
+
+  if (roadData.contacts.length === 0) {
+    container.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-style:italic">No emergency contacts added yet. Click "+ Add Emergency Contact" below.</div>`;
+    return;
+  }
+
+  roadData.contacts.forEach((c, idx) => {
+    const row = document.createElement('div');
+    row.className = 'repeater-item';
+    row.innerHTML = `
+      <div class="repeater-header">
+        <span class="repeater-tag">Contact #${idx + 1}</span>
+        <button type="button" class="btn-delete" onclick="removeContactRow(${idx})">🗑️ Remove</button>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input class="form-input" value="${escapeHTML(c.name || '')}" placeholder="e.g. Alex Morgan" oninput="roadData.contacts[${idx}].name = this.value" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Relationship *</label>
+          <input class="form-input" value="${escapeHTML(c.relation || '')}" placeholder="e.g. Spouse / Brother" oninput="roadData.contacts[${idx}].relation = this.value" required>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:8px">
+        <label class="form-label">Phone Number *</label>
+        <input class="form-input" type="tel" value="${escapeHTML(c.phone || '')}" placeholder="e.g. +1 555-0199" oninput="roadData.contacts[${idx}].phone = this.value" required>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function addContactRow() {
+  roadData.contacts.push({
+    id: generateId(),
+    name: '',
+    relation: '',
+    phone: ''
+  });
+  renderContactsRepeater();
+}
+
+function removeContactRow(idx) {
+  roadData.contacts.splice(idx, 1);
+  renderContactsRepeater();
+}
+
+function renderServicesRepeater() {
+  const container = document.getElementById('services-repeater-container');
+  container.innerHTML = '';
+
+  if (roadData.services.length === 0) {
+    container.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-style:italic">No emergency services added yet. Click "+ Add Emergency Service" below.</div>`;
+    return;
+  }
+
+  roadData.services.forEach((s, idx) => {
+    const row = document.createElement('div');
+    row.className = 'repeater-item';
+    row.innerHTML = `
+      <div class="repeater-header">
+        <span class="repeater-tag">Service #${idx + 1}</span>
+        <button type="button" class="btn-delete" onclick="removeServiceRow(${idx})">🗑️ Remove</button>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Category *</label>
+          <select class="form-select" onchange="roadData.services[${idx}].type = this.value">
+            <option value="hospital" ${s.type === 'hospital' ? 'selected' : ''}>🏥 Hospital</option>
+            <option value="ambulance" ${s.type === 'ambulance' ? 'selected' : ''}>🚑 Ambulance</option>
+            <option value="police" ${s.type === 'police' ? 'selected' : ''}>👮 Police</option>
+            <option value="rescue" ${s.type === 'rescue' ? 'selected' : ''}>🔧 Rescue / Towing</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Distance (km) *</label>
+          <input class="form-input" type="number" step="0.1" min="0.1" value="${s.distance || '1.0'}" placeholder="e.g. 1.2" oninput="roadData.services[${idx}].distance = Number(this.value) || 0" required>
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:8px">
+        <div class="form-group">
+          <label class="form-label">Service Name *</label>
+          <input class="form-input" value="${escapeHTML(s.name || '')}" placeholder="e.g. City General Hospital" oninput="roadData.services[${idx}].name = this.value" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status Label</label>
+          <input class="form-input" value="${escapeHTML(s.status || 'AVAILABLE')}" placeholder="e.g. OPEN 24/7" oninput="roadData.services[${idx}].status = this.value">
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:8px">
+        <div class="form-group">
+          <label class="form-label">Subtitle / Specialty</label>
+          <input class="form-input" value="${escapeHTML(s.subtitle || '')}" placeholder="e.g. Trauma Center · 24 hrs" oninput="roadData.services[${idx}].subtitle = this.value">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone / Dispatch</label>
+          <input class="form-input" value="${escapeHTML(s.phone || '')}" placeholder="e.g. 108 or direct number" oninput="roadData.services[${idx}].phone = this.value">
+        </div>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function addServiceRow() {
+  roadData.services.push({
+    id: generateId(),
+    type: 'hospital',
+    name: '',
+    subtitle: '',
+    distance: 1.0,
+    status: 'AVAILABLE',
+    phone: ''
+  });
+  renderServicesRepeater();
+}
+
+function removeServiceRow(idx) {
+  roadData.services.splice(idx, 1);
+  renderServicesRepeater();
+}
+
+// Form Submission Handler
+function handleSaveProfile(event) {
+  event.preventDefault();
+
+  // Read personal inputs
+  roadData.profile.name = document.getElementById('inp-user-name').value.trim();
+  roadData.profile.phone = document.getElementById('inp-user-phone').value.trim();
+  roadData.profile.location = document.getElementById('inp-user-location').value.trim();
+
+  // Read incident inputs
+  roadData.incident.type = document.getElementById('inp-inc-type').value;
+  roadData.incident.condition = document.getElementById('inp-inc-condition').value;
+  roadData.incident.people = Number(document.getElementById('inp-inc-people').value) || 1;
+  roadData.incident.notes = document.getElementById('inp-inc-notes').value.trim();
+
+  // Read safety tip
+  roadData.safetyTip = document.getElementById('inp-safety-tip').value.trim();
+
+  // Filter out any contacts without names
+  roadData.contacts = roadData.contacts.filter(c => c.name && c.name.trim());
+
+  // Filter out any services without names
+  roadData.services = roadData.services.filter(s => s.name && s.name.trim());
+
+  // Persist
+  persistData();
+
+  // Update all views immediately
+  renderDashboard();
+  renderNearbyServices();
+
+  showToast('✅ Emergency Profile saved successfully!');
+  showScreen('dashboard');
+}
+
+// Reset data to clean empty state
+function resetAllData() {
+  if (confirm('Clear all profile, service, contact and incident data? The dashboard will return to the unconfigured state.')) {
+    roadData = JSON.parse(JSON.stringify(DEFAULT_EMPTY_STATE));
+    persistData();
+    populateProfileForm();
+    renderDashboard();
+    renderNearbyServices();
+    showToast('All data cleared.');
+  }
+}
+
+// Convenient Test Template Loader (only populates when explicitly clicked)
+function loadSampleTemplateData() {
+  roadData = {
+    profile: {
+      name: 'Maya Vance',
+      phone: '+1 (555) 349-8201',
+      location: 'Highway 101, Mile Marker 42'
+    },
+    incident: {
+      type: 'Vehicle Breakdown',
+      condition: 'No injury - Everyone safe',
+      people: 2,
+      notes: 'Vehicle engine overheated with smoke, stopped on right shoulder.'
+    },
+    contacts: [
+      { id: 'c1', name: 'David Vance', relation: 'Spouse', phone: '+1 (555) 782-1102' },
+      { id: 'c2', name: 'Elena Frost', relation: 'Sister', phone: '+1 (555) 439-9014' },
+      { id: 'c3', name: 'Marcus Cole', relation: 'Friend', phone: '+1 (555) 902-3341' }
+    ],
+    services: [
+      { id: 's1', type: 'hospital', name: 'Pacific Coast Trauma Hospital', subtitle: 'Emergency Care · 24 hrs', distance: 1.8, status: 'OPEN 24/7', phone: '911' },
+      { id: 's2', type: 'ambulance', name: 'Metro Rapid Paramedics', subtitle: 'Advanced Life Support Unit', distance: 0.7, status: 'AVAILABLE', phone: '108' },
+      { id: 's3', type: 'police', name: 'State Highway Patrol Post 9', subtitle: 'Traffic Safety & Escort', distance: 1.2, status: 'ON DUTY', phone: '100' },
+      { id: 's4', type: 'rescue', name: 'Apex Rapid Heavy Tow', subtitle: 'Flatbed Recovery & Repair', distance: 2.5, status: 'AVAILABLE', phone: '1-800-555-TOW' }
+    ],
+    safetyTip: 'Turn on hazard lights immediately and place reflective warning triangles 50 meters behind the vehicle.'
+  };
+
+  persistData();
+  populateProfileForm();
+  renderDashboard();
+  renderNearbyServices();
+  showToast('⚡ Sample test data loaded and saved!');
+}
+
+// ===== AI ASSISTANT LOGIC =====
+const aiKnowledgeBase = {
+  bleed: "For severe bleeding: Apply firm, continuous pressure with a clean cloth or sterile gauze. Keep the injured limb elevated above heart level if no fracture is suspected. Do not remove soaked cloths—add more layers on top.",
+  cut: "For minor cuts: Wash gently with clean water and pat dry. Apply gentle pressure to stop bleeding, then cover with a clean dressing. Seek medical care if the cut is deep or gaping.",
+  unconscious: "If someone is unconscious: Check their breathing immediately. If breathing normally, place them in the recovery position (on their side) to keep the airway clear. If not breathing, call emergency services and begin chest compressions.",
+  faint: "If someone faints: Lay them flat on their back and elevate their feet 12 inches. Loosen tight clothing. Ensure fresh air. If they don't regain consciousness within 1 minute, treat as a medical emergency.",
+  fracture: "For suspected fractures: Keep the injured limb completely still. Support it with a rolled towel, jacket, or splint in the position found. Never attempt to straighten a deformed limb. Apply an ice pack wrapped in cloth to reduce swelling.",
+  broken: "For a broken bone: Immobilize the area, avoid unnecessary movement, and contact emergency services or proceed to the nearest trauma hospital.",
+  cpr: "Hands-Only CPR: Place both hands in the center of the chest. Push hard and fast at 100-120 beats per minute (to the rhythm of 'Stayin' Alive'). Continue until emergency responders arrive.",
+  accident: "Accident Checklist:\n1. Ensure immediate safety—turn on hazard lights.\n2. Check for injuries and call emergency services.\n3. Do not move severely injured people unless imminent danger (fire/traffic).\n4. Exchange contact and insurance details.",
+  breakdown: "Breakdown Safety:\n1. Pull as far onto the road shoulder as safely possible.\n2. Turn on hazard warning flashers.\n3. Exit the vehicle from the non-traffic side.\n4. Stand behind the guardrail away from moving traffic while awaiting towing."
+};
+
+function getAIAnswer(query) {
+  const text = String(query || '').toLowerCase();
+  for (const [kw, ans] of Object.entries(aiKnowledgeBase)) {
+    if (text.includes(kw)) return ans;
+  }
+  return "I'm your RoadSOS first aid and breakdown guide. Ask me about bleeding, unconsciousness, fractures, CPR, road accident steps, or vehicle breakdowns.";
+}
+
+function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  appendChatMessage(text, 'user');
+  input.value = '';
+
+  setTimeout(() => {
+    const reply = getAIAnswer(text);
+    appendChatMessage(reply, 'bot');
+  }, 450);
+}
+
+function sendQuick(prompt) {
+  appendChatMessage(prompt, 'user');
+  setTimeout(() => {
+    const reply = getAIAnswer(prompt);
+    appendChatMessage(reply, 'bot');
+  }, 450);
+}
+
+function appendChatMessage(text, sender) {
+  const container = document.getElementById('chat-msgs');
+  const msg = document.createElement('div');
+  msg.className = `msg ${sender}`;
+
+  const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  if (sender === 'user') {
+    msg.innerHTML = `
+      <div class="msg-bubble">${escapeHTML(text)}</div>
+      <div class="msg-time">${timeStr}</div>
+    `;
+  } else {
+    msg.innerHTML = `
+      <div class="bot-row">
+        <div class="bot-avatar">🤖</div>
+        <div class="msg-bubble">${escapeHTML(text).replace(/\n/g, '<br>')}</div>
+      </div>
+      <div class="msg-time">${timeStr}</div>
+    `;
+  }
+
+  container.appendChild(msg);
+  container.scrollTop = container.scrollHeight;
+}
+
+// ===== INITIALIZATION =====
+document.addEventListener('DOMContentLoaded', () => {
+  renderDashboard();
+  renderNearbyServices();
+
+  // If no data exists on first visit, notify user gently
+  if (!isProfileConfigured()) {
+    setTimeout(() => {
+      showToast('Welcome to RoadSOS! Please configure your emergency profile.');
+    }, 600);
+  }
+});
+</script>
+
+</body>
+</html>
