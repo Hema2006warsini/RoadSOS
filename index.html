@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RoadSOS — Input-Driven Emergency Assistance</title>
+  <title>RoadSOS — Real-Time Emergency Assistance</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
     *{box-sizing:border-box;margin:0;padding:0}
@@ -43,7 +44,7 @@
     @keyframes pulse-green{0%,100%{box-shadow:0 0 0 0 rgba(76,175,80,.5)}50%{box-shadow:0 0 0 6px rgba(76,175,80,0)}}
     @keyframes pulse-orange{0%,100%{box-shadow:0 0 0 0 rgba(255,160,0,.5)}50%{box-shadow:0 0 0 6px rgba(255,160,0,0)}}
     .hero-status span{font-size:11px;font-weight:600}
-    .hero-edit-btn{margin-top:10px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:11px;font-weight:600;padding:4px 10px;border-radius:14px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:background .2s}
+    .hero-edit-btn{margin-top:10px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:11px;font-weight:600;padding:5px 12px;border-radius:14px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:background .2s}
     .hero-edit-btn:hover{background:rgba(255,255,255,.3)}
     
     /* EMPTY STATE ONBOARDING */
@@ -56,23 +57,15 @@
     .btn-secondary{background:#fff;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);display:inline-flex;align-items:center;gap:6px}
     .btn-secondary:hover{background:#F1F5F9}
 
-    /* MAP */
-    .map-container{height:175px;background:#E2E8F0;position:relative;overflow:hidden}
-    .map-bg{width:100%;height:100%;background:linear-gradient(180deg,#CBD5E1 0%,#94A3B8 100%);position:relative}
-    .map-road-h{position:absolute;background:#64748B;height:12px;top:50%;left:0;right:0;transform:translateY(-50%)}
-    .map-road-v{position:absolute;background:#64748B;width:10px;left:40%;top:0;bottom:0}
-    .map-road-h2{position:absolute;background:#94A3B8;height:8px;top:28%;left:0;right:0}
-    .map-road-v2{position:absolute;background:#94A3B8;width:8px;left:72%;top:0;bottom:0}
-    .map-park{position:absolute;background:#86EFAC;border-radius:6px;top:10%;right:8%;width:20%;height:32%;opacity:.8}
-    .map-building{position:absolute;background:#CBD5E1;border-radius:4px}
-    .map-pin{position:absolute;font-size:26px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.4));animation:bounce 2s ease-in-out infinite}
-    @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-    .map-marker{position:absolute;background:var(--card);border-radius:8px;padding:3px 8px;font-size:10px;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.2);white-space:nowrap;display:flex;align-items:center;gap:4px;cursor:pointer;transition:transform .15s}
-    .map-marker:hover{transform:scale(1.05)}
-    .map-overlay-btn{position:absolute;bottom:10px;right:10px;background:var(--blue);color:#fff;border:none;border-radius:20px;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);box-shadow:0 2px 6px rgba(0,0,0,.2)}
+    /* LOCATION SUMMARY */
+    .location-summary{margin:14px 20px 0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px}
+    .location-summary-icon{width:40px;height:40px;border-radius:10px;background:var(--light-blue);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+    .location-summary-copy{flex:1;min-width:0}
+    .location-summary-copy strong{display:block;font-size:12px;margin-bottom:3px}
+    .location-summary-copy span{display:block;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
     
     /* SOS BUTTON */
-    .sos-section{padding:20px 20px 14px;text-align:center}
+    .sos-section{padding:22px 20px 14px;text-align:center}
     .sos-label{font-size:11px;color:var(--muted);margin-bottom:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
     .sos-outer{width:140px;height:140px;border-radius:50%;background:linear-gradient(145deg,#FFCDD2,#FFEBEE);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;position:relative;animation:sos-pulse 3s ease-in-out infinite;cursor:pointer}
     @keyframes sos-pulse{0%,100%{box-shadow:0 0 0 0 rgba(211,47,47,.25),0 0 0 0 rgba(211,47,47,.15)}50%{box-shadow:0 0 0 16px rgba(211,47,47,.18),0 0 0 32px rgba(211,47,47,.06)}}
@@ -117,7 +110,8 @@
     .contact-rel{font-size:9px;color:var(--muted);font-weight:500}
     .contact-add{width:52px;height:52px;border-radius:50%;background:var(--card);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--muted);cursor:pointer;transition:border-color .2s;flex-shrink:0}
     .contact-add:hover{border-color:var(--blue);color:var(--blue)}
-    .contacts-empty-hint{font-size:12px;color:var(--muted);padding:10px 0;font-style:italic}
+    .contacts-empty-box{background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:14px;text-align:center;width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .contacts-empty-hint{font-size:12px;color:var(--muted);font-style:italic}
     
     /* TIPS */
     .tip-card{margin:16px 20px;background:var(--light-orange);border-left:4px solid var(--orange);border-radius:10px;padding:12px 16px}
@@ -131,15 +125,12 @@
     @keyframes blink{50%{opacity:.4}}
     .emg-time{font-family:var(--font-heading);font-weight:800;font-size:22px;color:#EF9A9A}
     
-    .emg-banner{background:rgba(211,47,47,.15);border-bottom:1px solid rgba(211,47,47,.25);padding:12px 20px}
-    .emg-banner-user{font-size:15px;font-weight:700;color:#FFCDD2;font-family:var(--font-heading)}
-    .emg-banner-details{font-size:12px;color:#EF9A9A;margin-top:2px}
+    .emg-banner{background:rgba(211,47,47,.15);border-bottom:1px solid rgba(211,47,47,.25);padding:14px 20px}
+    .emg-banner-user{font-size:16px;font-weight:700;color:#FFCDD2;font-family:var(--font-heading)}
+    .emg-banner-details{font-size:12px;color:#EF9A9A;margin-top:3px}
     
-    .emg-map{height:160px;background:#142314;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
-    .emg-map-pulse{width:80px;height:80px;border-radius:50%;background:rgba(211,47,47,.25);display:flex;align-items:center;justify-content:center;animation:emg-ring 1.5s ease-out infinite}
-    @keyframes emg-ring{0%{box-shadow:0 0 0 0 rgba(211,47,47,.6)}100%{box-shadow:0 0 0 45px rgba(211,47,47,0)}}
-    .emg-map-dot{width:22px;height:22px;border-radius:50%;background:var(--red);border:3px solid #fff}
-    .emg-coords{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);padding:5px 14px;border-radius:20px;font-size:11px;color:#EF9A9A;font-family:var(--font-body);white-space:nowrap;border:1px solid rgba(211,47,47,.3)}
+    .emg-map{min-height:70px;background:#211313;position:relative;display:flex;align-items:center;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
+    .emg-coords{font-size:12px;color:#FFCDD2;line-height:1.5;overflow-wrap:anywhere}
     
     .emg-status-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:rgba(255,255,255,.08)}
     .emg-stat{background:#1A0A0A;padding:14px 10px;text-align:center}
@@ -159,10 +150,6 @@
     .resp-icon{font-size:24px;flex-shrink:0}
     .resp-info h4{font-size:13px;font-weight:600;color:#FFCDD2}
     .resp-info p{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px}
-    .resp-eta{font-family:var(--font-heading);font-weight:700;font-size:15px;color:#4CAF50;margin-left:auto;text-align:right}
-    .resp-bar{height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:6px}
-    .resp-progress{height:100%;border-radius:2px;background:linear-gradient(90deg,#4CAF50,#8BC34A);animation:progress-pulse 2s infinite ease-in-out}
-    @keyframes progress-pulse{0%,100%{opacity:.8}50%{opacity:1}}
     
     .emg-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 20px 16px}
     .emg-action-btn{background:#2D0A0A;border:1px solid rgba(211,47,47,.35);color:#FFCDD2;border-radius:12px;padding:12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);display:flex;align-items:center;justify-content:center;gap:6px;transition:background .2s}
@@ -171,21 +158,46 @@
     .emg-cancel:hover{background:rgba(255,255,255,.15)}
     
     /* ===== NEARBY SERVICES ===== */
-    .filter-row{display:flex;gap:8px;padding:14px 20px;overflow-x:auto;scrollbar-width:none}
+    .filter-row{display:flex;gap:8px;padding:14px 20px 10px;overflow-x:auto;scrollbar-width:none}
     .filter-chip{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card);font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);transition:all .2s;font-family:var(--font-body)}
     .filter-chip.active{background:var(--blue);border-color:var(--blue);color:#fff}
     .nearby-list{padding:0 20px}
-    .nearby-item{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid var(--border);transition:all .2s}
-    .nearby-item:hover{border-color:var(--blue);transform:translateY(-1px)}
-    .nearby-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
-    .nearby-info h4{font-size:14px;font-weight:700;margin-bottom:2px}
-    .nearby-info p{font-size:12px;color:var(--muted)}
+    .nearby-item{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid var(--border);cursor:pointer;transition:all .2s}
+    .nearby-item:hover{border-color:var(--blue);transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.04)}
+    .nearby-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+    .nearby-info h4{font-size:14px;font-weight:700;margin-bottom:2px;color:var(--text)}
+    .nearby-info p{font-size:11px;color:var(--muted);line-height:1.3}
+    .nearby-addr{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
     .nearby-dist{text-align:right;flex-shrink:0}
-    .nearby-dist span{font-family:var(--font-heading);font-weight:700;font-size:15px;color:var(--blue);display:block}
-    .nearby-dist small{font-size:10px;color:var(--muted)}
-    .status-open{color:var(--green);font-size:10px;font-weight:700;margin-top:2px}
-    .nearby-call-btn{background:var(--light-blue);color:var(--blue);border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;margin-top:4px}
+    .nearby-dist span{font-family:var(--font-heading);font-weight:700;font-size:14px;color:var(--blue);display:block}
+    .status-open{color:var(--green);font-size:10px;font-weight:700;margin-top:2px;display:inline-block}
+    .nearby-call-btn{background:var(--light-blue);color:var(--blue);border:none;border-radius:6px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;margin-top:4px;display:inline-flex;align-items:center;gap:3px;transition:background .2s}
+    .nearby-call-btn:hover{background:#BBDEFB}
     
+    /* SERVICES STATES */
+    .services-state{padding:36px 20px;text-align:center;background:var(--card);border-radius:14px;border:1px dashed var(--border);margin:10px 0}
+    .services-state .state-icon{font-size:36px;margin-bottom:10px}
+    .services-state h4{font-size:15px;font-weight:700;margin-bottom:6px;font-family:var(--font-heading);color:var(--text)}
+    .services-state p{font-size:12px;color:var(--muted);max-width:380px;margin:0 auto 16px;line-height:1.5}
+    .services-state .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    
+    /* MAP */
+    #services-map{height:190px;border-radius:14px;margin:0 20px 14px;border:1px solid var(--border);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.04);display:none}
+
+    /* SERVICE DETAIL MODAL */
+    .service-modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;animation:fade-in-up .2s ease-out}
+    .service-modal{width:min(100%,480px);background:var(--card);border-radius:16px;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.35);max-height:90vh;overflow-y:auto}
+    .service-modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+    .btn-close-modal{background:transparent;border:none;font-size:18px;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:6px;line-height:1}
+    .btn-close-modal:hover{background:#F1F5F9;color:var(--text)}
+    .service-modal-body{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+    .service-modal-row{display:flex;flex-direction:column;gap:3px;font-size:12px}
+    .modal-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+    .modal-val{font-size:13px;color:var(--text);line-height:1.4;word-break:break-word}
+    .service-modal-actions{display:flex;gap:10px}
+    .service-modal-actions button,.service-modal-actions a{flex:1;padding:11px 14px;font-size:12px;font-weight:600;border-radius:8px;display:inline-flex;align-items:center;gap:6px;text-align:center;justify-content:center}
+
     /* ===== AI ASSISTANT ===== */
     .chat-container{display:flex;flex-direction:column;height:calc(100vh - 160px);min-height:380px}
     .chat-messages{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin}
@@ -208,9 +220,9 @@
     .send-btn svg{width:16px;height:16px;fill:#fff}
 
     /* ===== SETUP & PROFILE SCREEN ===== */
-    .setup-header{padding:20px 20px 12px;background:var(--card);border-bottom:1px solid var(--border)}
+    .setup-header{padding:24px 20px 18px;background:var(--card);border-bottom:1px solid var(--border)}
     .setup-header h2{font-family:var(--font-heading);font-weight:800;font-size:22px;color:var(--text);margin-bottom:4px}
-    .setup-header p{font-size:12px;color:var(--muted);line-height:1.4}
+    .setup-header p{font-size:13px;color:var(--muted);line-height:1.55;max-width:540px}
     .setup-quick-bar{display:flex;gap:8px;margin-top:12px}
     
     .setup-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin:14px 20px}
@@ -220,9 +232,14 @@
     .form-label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
     .form-input,.form-select,.form-textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font-body);background:var(--bg);color:var(--text);outline:none;transition:border-color .2s}
     .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--blue);background:#fff}
+    .form-input.invalid,.form-select.invalid,.form-textarea.invalid{border-color:var(--red)}
+    .field-error{font-size:11px;color:var(--red);margin-top:4px;line-height:1.4}
     .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     
-    /* REPEATER ITEM CARDS (Contacts & Services) */
+    .btn-detect-loc{background:var(--light-blue);color:var(--blue);border:1px solid rgba(21,101,192,.3);border-radius:6px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-top:6px;transition:all .2s;font-family:var(--font-body)}
+    .btn-detect-loc:hover{background:var(--blue);color:#fff}
+    
+    /* REPEATER ITEM CARDS (Contacts) */
     .repeater-item{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;position:relative}
     .repeater-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
     .repeater-tag{font-size:10px;font-weight:700;text-transform:uppercase;background:#E2E8F0;padding:2px 8px;border-radius:4px;color:var(--muted)}
@@ -236,6 +253,16 @@
     .btn-save-main:active{transform:scale(.98)}
     .btn-reset{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:11px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body)}
     .btn-reset:hover{color:var(--red);border-color:var(--red)}
+
+    /* SOS CONFIRM MODAL */
+    .sos-confirm-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.72);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+    .sos-confirm-dialog{width:min(100%,400px);background:var(--card);border-radius:14px;padding:22px;box-shadow:0 18px 50px rgba(0,0,0,.3)}
+    .sos-confirm-dialog h2{font-family:var(--font-heading);font-size:20px;margin-bottom:8px}
+    .sos-confirm-dialog p{font-size:13px;line-height:1.5;color:var(--muted);margin-bottom:18px}
+    .sos-confirm-actions{display:flex;gap:10px}
+    .sos-confirm-actions button{flex:1;justify-content:center;padding:12px}
+    .sos-confirm-activate{background:var(--red);color:#fff;border:0;border-radius:8px;font-weight:700;cursor:pointer;font-family:var(--font-body)}
+    .sos-confirm-activate:disabled{opacity:.6;cursor:wait}
 
     /* BOTTOM NAV */
     .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:680px;background:var(--card);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 0 12px;z-index:200}
@@ -251,6 +278,27 @@
     /* TOAST */
     .toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%);background:#1F2937;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.35);display:flex;align-items:center;gap:8px;animation:fade-in-up .25s ease-out}
     @keyframes fade-in-up{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+
+    @media(max-width:560px){
+      .nav{align-items:flex-start;flex-direction:column;gap:8px;padding:10px 14px}
+      .nav-tabs{width:100%;justify-content:space-between}
+      .nav-tab{padding:7px 8px;font-size:11px}
+      .form-row{grid-template-columns:1fr;gap:0}
+      .setup-header{padding-left:14px;padding-right:14px}
+      .setup-card{margin:12px 14px;padding:14px}
+      .setup-actions{padding-left:14px;padding-right:14px}
+      .section-title{padding-left:14px;padding-right:14px}
+      .contacts-row{padding:0 14px}
+      .services-grid{padding:0 14px;gap:8px}
+      .service-card{padding:10px;gap:8px}
+      .svc-icon{width:36px;height:36px}
+      .hero-status{right:12px;top:12px;padding:5px 8px}
+      .hero-status span{font-size:10px}
+      .hero-name{font-size:21px;padding-right:95px}
+      .emg-status-grid{grid-template-columns:1fr 1fr 1fr}
+      .emg-stat{padding:12px 6px}
+      .emg-stat-val{font-size:16px}
+    }
   </style>
 </head>
 <body>
@@ -269,7 +317,7 @@
 
   <!-- ===== SCREEN: DASHBOARD ===== -->
   <div id="screen-dashboard" class="screen active">
-    <!-- Hero Header -->
+    <!-- 1. Emergency Profile -->
     <div class="hero-bar">
       <div class="hero-greeting" id="hero-greeting">Good day 👋</div>
       <div class="hero-name" id="hero-name">Welcome to RoadSOS</div>
@@ -280,123 +328,109 @@
         <span id="hero-status-text">Setup Required</span>
       </div>
       <div style="margin-top:8px">
-        <button class="hero-edit-btn" onclick="showScreen('profile')">✏️ Edit Profile & Data</button>
+        <button class="hero-edit-btn" onclick="showScreen('profile')">✏️ Edit Profile</button>
       </div>
     </div>
     
     <!-- Empty State Onboarding Card (Shown if profile not saved) -->
     <div id="dashboard-empty-card" class="empty-state-banner" style="display:none">
-      <h3>🚀 Profile Setup Required</h3>
-      <p>RoadSOS is genuinely input-driven. No demo data is pre-populated. Enter your personal details, emergency services, distances, and contacts to activate live protection.</p>
+      <h3>Set up your emergency profile</h3>
+      <p>Add your information once so RoadSOS can quickly share the right details during an emergency.</p>
       <div class="empty-state-actions">
-        <button class="btn-primary" onclick="showScreen('profile')">⚙️ Open Data Setup</button>
-        <button class="btn-secondary" onclick="loadSampleTemplateData()">⚡ Fill Sample Demo Data</button>
+        <button class="btn-primary" onclick="showScreen('profile')">Set Up Emergency Profile</button>
       </div>
     </div>
 
-    <!-- Map Canvas -->
-    <div class="map-container">
-      <div class="map-bg">
-        <div class="map-road-h"></div>
-        <div class="map-road-v"></div>
-        <div class="map-road-h2"></div>
-        <div class="map-road-v2"></div>
-        <div class="map-park"></div>
-        <div class="map-building" style="left:10%;top:15%;width:8%;height:15%"></div>
-        <div class="map-building" style="left:10%;top:60%;width:10%;height:20%"></div>
-        <div class="map-building" style="right:15%;top:55%;width:8%;height:18%"></div>
-        
-        <!-- User Location Pin -->
-        <div class="map-pin" style="left:43%;top:38%">📍</div>
-        
-        <!-- Dynamic Map Service Markers Container -->
-        <div id="map-dynamic-markers"></div>
-
-        <button class="map-overlay-btn" onclick="showScreen('nearby')">View All Services →</button>
+    <!-- Current Location Summary -->
+    <div class="location-summary" id="dashboard-location">
+      <div class="location-summary-icon">📍</div>
+      <div class="location-summary-copy">
+        <strong>Current location</strong>
+        <span id="dashboard-location-summary">Not provided</span>
       </div>
+      <button class="btn-secondary" style="font-size:11px;padding:7px 10px" onclick="showScreen('profile')">Edit</button>
+    </div>
+
+    <!-- 2. Current Incident Status Bar -->
+    <div class="incident-bar" id="dashboard-incident-bar">
+      <div class="incident-bar-info">
+        <h4 id="dash-inc-type">⚠️ Current incident</h4>
+        <p id="dash-inc-desc">No incident details entered</p>
+      </div>
+      <button class="btn-secondary" style="padding:6px 10px;font-size:11px" onclick="showScreen('profile')">Configure</button>
     </div>
     
-    <!-- SOS Activation Section -->
-    <div class="sos-section">
+    <!-- 3. Emergency SOS Section -->
+    <div class="sos-section" id="dashboard-sos">
       <div class="sos-label">Emergency SOS</div>
       <div class="sos-outer" onclick="triggerSOS()">
         <button class="sos-btn" id="main-sos-btn">SOS</button>
       </div>
-      <div class="sos-hint">Hold or tap to activate emergency mode with your profile</div>
-    </div>
-    
-    <!-- Incident Quick Info Bar -->
-    <div class="incident-bar" id="dashboard-incident-bar">
-      <div class="incident-bar-info">
-        <h4 id="dash-inc-type">⚠️ Incident: Not Reported</h4>
-        <p id="dash-inc-desc">Condition: Safe / Unknown · 1 person involved</p>
-      </div>
-      <button class="btn-secondary" style="padding:6px 10px;font-size:11px" onclick="showScreen('profile')">Configure</button>
+      <div class="sos-hint">Review and confirm before Emergency Mode starts</div>
     </div>
 
-    <!-- Nearby Emergency Services Summary Grid -->
-    <div class="section-title">
-      <span>⚡ Nearby Emergency Services</span>
-      <span class="section-action" onclick="showScreen('nearby')">See All →</span>
-    </div>
-    <div class="services-grid" id="dashboard-services-grid">
-      <!-- Generated Dynamically -->
-    </div>
-    
-    <!-- AI Help Quick Access Card -->
-    <div class="ai-card" onclick="showScreen('assistant')">
-      <div class="ai-card-label">✦ AI First Aid & Guide</div>
-      <div class="ai-card-title">Instant Emergency Guidance</div>
-      <div class="ai-card-desc">Ask about injuries, bleeding, fractures, or step-by-step accident response tailored to your situation.</div>
-      <div class="ai-card-btn">Open AI Help →</div>
-    </div>
-    
-    <!-- Emergency Contacts Row -->
-    <div class="section-title">
+    <!-- 4. Emergency Contacts -->
+    <div class="section-title" id="dashboard-contacts-title">
       <span>👥 Emergency Contacts</span>
       <span class="section-action" onclick="showScreen('profile')">+ Manage Contacts</span>
     </div>
     <div class="contacts-row" id="dashboard-contacts-row">
       <!-- Generated Dynamically -->
     </div>
+
+    <!-- 5. Nearby Emergency Services Summary Grid -->
+    <div class="section-title" id="dashboard-services-title">
+      <span>⚡ Nearby Emergency Services</span>
+      <span class="section-action" onclick="showScreen('nearby')">See All →</span>
+    </div>
+    <div class="services-grid" id="dashboard-services-grid">
+      <!-- Generated Dynamically based on real location -->
+    </div>
     
-    <!-- Safety Tip Card -->
+    <!-- 6. AI Help Quick Access Card -->
+    <div class="ai-card" id="dashboard-ai-card" onclick="showScreen('assistant')">
+      <div class="ai-card-label">✦ AI First Aid & Guide</div>
+      <div class="ai-card-title">Instant Emergency Guidance</div>
+      <div class="ai-card-desc">Ask about injuries, bleeding, fractures, CPR, or step-by-step accident response tailored to your situation.</div>
+      <div class="ai-card-btn">Open AI Help →</div>
+    </div>
+    
+    <!-- 7. Safety Tip Card -->
     <div class="tip-card" id="dashboard-tip-card">
       <h4>💡 Safety Tip of the Day</h4>
-      <p id="dashboard-tip-text">No custom safety tip configured. You can set your safety tip in Setup / Profile.</p>
+      <p id="dashboard-tip-text">Always remain in a safe location behind guardrails if stopped on a high-speed road.</p>
     </div>
   </div>
 
-  <!-- ===== SCREEN: EMERGENCY SOS ===== -->
+  <!-- ===== SCREEN: EMERGENCY SOS MODE ===== -->
   <div id="screen-emergency" class="screen">
     <div class="emergency-screen">
       <div class="emg-header">
-        <div class="emg-badge">🚨 EMERGENCY ACTIVE</div>
+        <div class="emg-badge">EMERGENCY MODE ACTIVE</div>
         <div class="emg-time" id="emg-timer">00:00</div>
       </div>
 
       <div class="emg-banner">
-        <div class="emg-banner-user" id="emg-user-info">Emergency Call for: User</div>
-        <div class="emg-banner-details" id="emg-user-contact">Contact: Not specified</div>
+        <div class="emg-banner-user" id="emg-user-info">Emergency Profile</div>
+        <div class="emg-banner-details" id="emg-user-contact">No contact details configured</div>
       </div>
 
       <div class="emg-map">
-        <div class="emg-map-pulse"><div class="emg-map-dot"></div></div>
-        <div class="emg-coords" id="emg-coords">📍 Live Location Tracking</div>
+        <div class="emg-coords" id="emg-coords">Location not provided</div>
       </div>
 
       <div class="emg-status-grid">
         <div class="emg-stat">
           <div class="emg-stat-val" id="emg-stat-contacts">0</div>
-          <div class="emg-stat-label">Contacts Notified</div>
+          <div class="emg-stat-label">Saved Contacts</div>
         </div>
         <div class="emg-stat">
           <div class="emg-stat-val" id="emg-stat-responders">0</div>
-          <div class="emg-stat-label">Services Dispatched</div>
+          <div class="emg-stat-label">Nearby Services</div>
         </div>
         <div class="emg-stat">
-          <div class="emg-stat-val" style="color:#4CAF50">LIVE</div>
-          <div class="emg-stat-label">GPS Tracking</div>
+          <div class="emg-stat-val" id="emg-location-status">—</div>
+          <div class="emg-stat-label">Location Status</div>
         </div>
       </div>
 
@@ -404,21 +438,21 @@
       <div class="emg-incident-box">
         <div class="emg-incident-title">📋 Active Incident Details</div>
         <div class="emg-incident-row">
-          <div><span class="emg-incident-label">Type: </span><span class="emg-incident-value" id="emg-inc-type">Accident</span></div>
-          <div><span class="emg-incident-label">People Involved: </span><span class="emg-incident-value" id="emg-inc-people">1</span></div>
+          <div><span class="emg-incident-label">Type: </span><span class="emg-incident-value" id="emg-inc-type">Not specified</span></div>
+          <div><span class="emg-incident-label">People Involved: </span><span class="emg-incident-value" id="emg-inc-people">Not specified</span></div>
         </div>
         <div class="emg-incident-row">
-          <div><span class="emg-incident-label">Condition: </span><span class="emg-incident-value" id="emg-inc-condition">Unknown</span></div>
-          <div><span class="emg-incident-label">Primary Contact: </span><span class="emg-incident-value" id="emg-inc-contact">None</span></div>
+          <div><span class="emg-incident-label">Condition: </span><span class="emg-incident-value" id="emg-inc-condition">Not specified</span></div>
+          <div><span class="emg-incident-label">Primary Contact: </span><span class="emg-incident-value" id="emg-inc-contact">None added</span></div>
         </div>
         <div class="emg-incident-desc" id="emg-inc-notes">No additional notes provided.</div>
       </div>
 
-      <!-- Responders List -->
+      <!-- Responders List: Real Location-Based Services -->
       <div class="emg-responders">
-        <h3>Responders En Route (From Your Services)</h3>
+        <h3>Nearest Emergency Facilities</h3>
         <div id="emg-responders-list">
-          <!-- Dynamically generated from user's services -->
+          <!-- Dynamically generated from real nearby services -->
         </div>
       </div>
 
@@ -427,7 +461,7 @@
         <button class="emg-action-btn" onclick="showScreen('assistant')">🤖 AI First Aid</button>
         <button class="emg-action-btn" id="emg-call-contact-btn" onclick="callPrimaryContact()">🆘 Call Contact</button>
         <button class="emg-action-btn" onclick="shareEmergencyLocation()">📍 Share Location</button>
-        <button class="emg-action-btn" onclick="callNearestService()">📞 Call Dispatch</button>
+        <button class="emg-action-btn" onclick="callNearestService()">📞 Call Nearest Facility</button>
       </div>
 
       <button class="emg-cancel" onclick="cancelSOS()">✕ Cancel Emergency (I'm Safe)</button>
@@ -436,13 +470,18 @@
 
   <!-- ===== SCREEN: NEARBY SERVICES ===== -->
   <div id="screen-nearby" class="screen">
-    <div style="padding:16px 20px 8px;display:flex;align-items:flex-start;justify-content:space-between">
+    <div style="padding:16px 20px 8px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
       <div>
         <div style="font-family:var(--font-heading);font-weight:700;font-size:20px">Nearby Services</div>
         <div style="font-size:12px;color:var(--muted);margin-top:2px" id="nearby-location-subtitle">📍 Location not configured</div>
       </div>
-      <button class="btn-secondary" style="font-size:11px;padding:6px 10px" onclick="showScreen('profile')">+ Edit Services</button>
+      <button class="btn-secondary" style="font-size:11px;padding:6px 11px" onclick="refreshNearbyLocationAndServices()">
+        <i class="ti ti-refresh"></i> Refresh
+      </button>
     </div>
+
+    <!-- Map container -->
+    <div id="services-map"></div>
 
     <!-- Filter Buttons -->
     <div class="filter-row">
@@ -455,7 +494,7 @@
 
     <!-- List of Services -->
     <div class="nearby-list" id="nearby-list-container">
-      <!-- Populated Dynamically -->
+      <!-- Populated Dynamically with real location-based services -->
     </div>
   </div>
 
@@ -488,7 +527,7 @@
       </div>
       <div class="chat-input-row">
         <input class="chat-input" id="chat-input" placeholder="Ask about first aid, injuries, emergency steps..." onkeydown="if(event.key==='Enter')sendMessage()">
-        <button class="send-btn" onclick="sendMessage()">
+        <button class="send-btn" onclick="sendMessage()" aria-label="Send message">
           <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
         </button>
       </div>
@@ -498,15 +537,14 @@
   <!-- ===== SCREEN: SETUP & PROFILE ===== -->
   <div id="screen-profile" class="screen">
     <div class="setup-header">
-      <h2>Emergency Profile & Data Setup</h2>
-      <p>Every piece of data on RoadSOS is driven by your input. Fill in your details below and click <strong>Save Emergency Profile</strong>.</p>
+      <h2>Set up your emergency profile</h2>
+      <p>Add your information once so RoadSOS can quickly share the right details during an emergency.</p>
       <div class="setup-quick-bar">
-        <button class="btn-secondary" style="font-size:11px" onclick="loadSampleTemplateData()">⚡ Fill Sample Demo Data</button>
-        <button class="btn-reset" style="font-size:11px;padding:6px 12px" onclick="resetAllData()">🗑️ Clear All Data</button>
+        <button type="button" class="btn-reset" style="font-size:11px;padding:6px 12px" onclick="resetAllData()">🗑️ Clear All Data</button>
       </div>
     </div>
 
-    <form id="profileSetupForm" onsubmit="handleSaveProfile(event)">
+    <form id="profileSetupForm" novalidate onsubmit="handleSaveProfile(event)">
       <!-- 1. PERSONAL INFORMATION -->
       <div class="setup-card">
         <div class="setup-card-title">
@@ -523,7 +561,11 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="inp-user-location">Current Location *</label>
-            <input class="form-input" id="inp-user-location" placeholder="City, Area or Highway mile marker" required>
+            <input class="form-input" id="inp-user-location" placeholder="City, Area, or Road name" required>
+            <button type="button" class="btn-detect-loc" onclick="detectGPSForSetup()">
+              <i class="ti ti-current-location"></i> Auto-detect GPS Location
+            </button>
+            <span id="location-detect-status" style="font-size:11px;color:var(--muted);margin-left:6px"></span>
           </div>
         </div>
       </div>
@@ -537,6 +579,7 @@
           <div class="form-group">
             <label class="form-label" for="inp-inc-type">Incident Type</label>
             <select class="form-select" id="inp-inc-type">
+              <option value="" selected disabled>Select incident type</option>
               <option value="Road Accident">Road Accident</option>
               <option value="Vehicle Breakdown">Vehicle Breakdown</option>
               <option value="Medical Emergency">Medical Emergency</option>
@@ -548,6 +591,7 @@
           <div class="form-group">
             <label class="form-label" for="inp-inc-condition">Condition / Injury Details</label>
             <select class="form-select" id="inp-inc-condition">
+              <option value="" selected disabled>Select condition</option>
               <option value="No injury - Everyone safe">No injury - Everyone safe</option>
               <option value="Minor injuries / scrapes">Minor injuries / scrapes</option>
               <option value="Possible fracture">Possible fracture</option>
@@ -560,11 +604,11 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="inp-inc-people">People Involved</label>
-            <input class="form-input" id="inp-inc-people" type="number" min="1" max="50" value="1">
+            <input class="form-input" id="inp-inc-people" type="number" min="1" max="50" step="1" placeholder="e.g. 1">
           </div>
           <div class="form-group">
             <label class="form-label" for="inp-inc-notes">Additional Notes</label>
-            <input class="form-input" id="inp-inc-notes" placeholder="e.g. Car on highway shoulder, engine smoking">
+            <input class="form-input" id="inp-inc-notes" placeholder="Add any relevant details">
           </div>
         </div>
       </div>
@@ -573,7 +617,7 @@
       <div class="setup-card">
         <div class="setup-card-title">
           <span>👥 3. Emergency Contacts</span>
-          <span style="font-size:11px;color:var(--muted)">Notified in SOS mode</span>
+          <span style="font-size:11px;color:var(--muted)">Available in Emergency Mode</span>
         </div>
         <div id="contacts-repeater-container">
           <!-- Dynamic contact rows -->
@@ -583,24 +627,10 @@
         </button>
       </div>
 
-      <!-- 4. NEARBY EMERGENCY SERVICES -->
+      <!-- 4. SAFETY TIP -->
       <div class="setup-card">
         <div class="setup-card-title">
-          <span>⚡ 4. Nearby Emergency Services & Distances</span>
-          <span style="font-size:11px;color:var(--muted)">Hospitals, Ambulance, Police, Rescue</span>
-        </div>
-        <div id="services-repeater-container">
-          <!-- Dynamic service rows -->
-        </div>
-        <button type="button" class="btn-add-row" onclick="addServiceRow()">
-          + Add Emergency Service
-        </button>
-      </div>
-
-      <!-- 5. SAFETY TIP -->
-      <div class="setup-card">
-        <div class="setup-card-title">
-          <span>💡 5. Configurable Safety Tip</span>
+          <span>💡 4. Configurable Safety Tip</span>
         </div>
         <div class="form-group">
           <label class="form-label" for="inp-safety-tip">Safety Tip of the Day</label>
@@ -638,12 +668,13 @@
   </div>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 /**
- * RoadSOS — Genuine Input-Driven Engine
- * All user data, contacts, emergency services, distances, safety tips,
- * and incident parameters are driven strictly by user input stored in localStorage.
- * No hardcoded demo values are used on initial load.
+ * RoadSOS — Genuine Emergency Assistance Application
+ * Real user profiles, real GPS location detection, and live emergency services
+ * retrieved dynamically from OpenStreetMap around the user's real coordinates.
+ * No hardcoded demo users or fake seeded services.
  */
 
 const STORAGE_KEY = 'roadsos_data_v2';
@@ -656,33 +687,98 @@ const DEFAULT_EMPTY_STATE = {
     location: ''
   },
   incident: {
-    type: 'Road Accident',
-    condition: 'No injury - Everyone safe',
-    people: 1,
+    type: '',
+    condition: '',
+    people: '',
     notes: ''
   },
   contacts: [],
-  services: [],
   safetyTip: ''
 };
+
+// State detection: check if saved data belongs to the legacy demo profile
+function isDemoProfileData(data) {
+  if (!data) return false;
+  const name = String(data.profile?.name || '').toLowerCase();
+  const phone = String(data.profile?.phone || '');
+  const loc = String(data.profile?.location || '').toLowerCase();
+  if (name.includes('maya') || name.includes('vance')) return true;
+  if (phone.includes('349-8201') || phone.includes('555-349')) return true;
+  if (loc.includes('highway 101') || loc.includes('mile marker 42')) return true;
+  if (Array.isArray(data.contacts)) {
+    if (data.contacts.some(c => {
+      const cName = String(c?.name || '').toLowerCase();
+      return cName.includes('david vance') || cName.includes('elena frost') || cName.includes('marcus cole');
+    })) return true;
+  }
+  if (Array.isArray(data.services)) {
+    if (data.services.some(s => {
+      const sName = String(s?.name || '').toLowerCase();
+      return sName.includes('pacific coast') || sName.includes('metro rapid') || sName.includes('apex rapid') || sName.includes('state highway patrol');
+    })) return true;
+  }
+  return false;
+}
 
 // Current in-memory state
 var roadData = loadStoredData();
 var sosTimerInterval = null;
 var sosSeconds = 0;
+var sosConfirmationTimer = null;
 var currentNearbyFilter = 'all';
 
-// Load data from localStorage
+// Location and Real Services State
+var userLocation = {
+  lat: null,
+  lon: null,
+  address: '',
+  status: 'idle', // 'idle' | 'locating' | 'granted' | 'denied' | 'error'
+  errorMessage: ''
+};
+
+var realNearbyServices = {
+  hospital: [],
+  ambulance: [],
+  police: [],
+  rescue: []
+};
+
+var isServicesLoading = false;
+var servicesFetchError = null;
+var leafletMapInstance = null;
+var leafletMarkers = [];
+
+// Load data from localStorage safely
 function loadStoredData() {
+  // Clean legacy demo keys safely if they contain demo data
+  const legacyKeys = ['roadsos_data', 'roadsos_data_v1', 'roadsos_profile'];
+  legacyKeys.forEach(k => {
+    try {
+      const raw = localStorage.getItem(k);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (isDemoProfileData(parsed)) {
+          localStorage.removeItem(k);
+        }
+      }
+    } catch (e) {}
+  });
+
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return JSON.parse(JSON.stringify(DEFAULT_EMPTY_STATE));
     const parsed = JSON.parse(raw);
+    
+    // Safely detect and ignore legacy demo profile
+    if (isDemoProfileData(parsed)) {
+      localStorage.removeItem(STORAGE_KEY);
+      return JSON.parse(JSON.stringify(DEFAULT_EMPTY_STATE));
+    }
+
     return {
       profile: Object.assign({}, DEFAULT_EMPTY_STATE.profile, parsed.profile || {}),
       incident: Object.assign({}, DEFAULT_EMPTY_STATE.incident, parsed.incident || {}),
       contacts: Array.isArray(parsed.contacts) ? parsed.contacts : [],
-      services: Array.isArray(parsed.services) ? parsed.services : [],
       safetyTip: typeof parsed.safetyTip === 'string' ? parsed.safetyTip : ''
     };
   } catch (e) {
@@ -720,35 +816,53 @@ function getServiceIcon(type) {
     case 'hospital': return { emoji: '🏥', bg: '#FFEBEE', label: 'Hospital' };
     case 'ambulance': return { emoji: '🚑', bg: '#E8F5E9', label: 'Ambulance' };
     case 'police': return { emoji: '👮', bg: '#E3F0FF', label: 'Police' };
-    case 'rescue': return { emoji: '🔧', bg: '#FFF3E8', label: 'Rescue' };
-    default: return { emoji: '🚨', bg: '#F1F5F9', label: 'Emergency' };
+    case 'rescue': return { emoji: '🔧', bg: '#FFF3E8', label: 'Rescue / Recovery' };
+    default: return { emoji: '🚨', bg: '#F1F5F9', label: 'Emergency Facility' };
   }
 }
 
-// Navigation screen switcher
+// Haversine Distance Formula (km)
+function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radius of the Earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Check if user has saved a real profile
+function isProfileConfigured() {
+  return Boolean(roadData.profile.name && roadData.profile.name.trim());
+}
+
+// Screen navigation
 function showScreen(screenId, navElement) {
-  // Hide all screens
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   
-  // Show target screen
   const target = document.getElementById('screen-' + screenId);
   if (target) target.classList.add('active');
 
-  // Update top tabs
   document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
   const topTab = document.getElementById('ntab-' + screenId);
   if (topTab) topTab.classList.add('active');
 
-  // Update bottom nav
   document.querySelectorAll('.bnav-item').forEach(btn => btn.classList.remove('active'));
   const bottomBtn = document.getElementById('bnav-' + screenId);
   if (bottomBtn) bottomBtn.classList.add('active');
 
-  // If opening profile, populate the form
   if (screenId === 'profile') {
     populateProfileForm();
   } else if (screenId === 'nearby') {
     renderNearbyServices();
+    if (userLocation.status === 'idle') {
+      requestUserLocation(() => fetchRealNearbyServices(), () => renderNearbyServices());
+    } else if (userLocation.status === 'granted') {
+      setTimeout(() => updateServicesMap(), 150);
+    }
   } else if (screenId === 'dashboard') {
     renderDashboard();
   }
@@ -756,7 +870,7 @@ function showScreen(screenId, navElement) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Toast alert notification
+// Toast notification
 function showToast(message) {
   const existing = document.querySelector('.toast');
   if (existing) existing.remove();
@@ -773,18 +887,753 @@ function showToast(message) {
   }, 2800);
 }
 
-// Check if user has entered data
-function isProfileConfigured() {
-  return Boolean(roadData.profile.name && roadData.profile.location);
+// Call phone helper
+function callPhone(num) {
+  if (num) {
+    const cleaned = String(num).replace(/[^\d+*#]/g, '');
+    window.location.href = `tel:${cleaned}`;
+  }
 }
 
-// Render Dashboard
+// ===== REAL GEOLOCATION & NEARBY SERVICES =====
+
+function updateLocationSummaryUI() {
+  const subtitle = document.getElementById('nearby-location-subtitle');
+  if (subtitle) {
+    if (userLocation.status === 'granted' && userLocation.address) {
+      subtitle.textContent = `📍 ${userLocation.address} (${userLocation.lat.toFixed(4)}, ${userLocation.lon.toFixed(4)})`;
+    } else if (userLocation.status === 'locating') {
+      subtitle.textContent = '📍 Acquiring current GPS coordinates...';
+    } else if (userLocation.status === 'denied') {
+      subtitle.textContent = '📍 Location permission denied';
+    } else if (roadData.profile.location) {
+      subtitle.textContent = `📍 Profile: ${roadData.profile.location}`;
+    } else {
+      subtitle.textContent = '📍 Location not configured';
+    }
+  }
+
+  const heroLoc = document.getElementById('hero-loc');
+  if (heroLoc) {
+    if (roadData.profile.location) {
+      heroLoc.innerHTML = `📍 ${escapeHTML(roadData.profile.location)}`;
+    } else if (userLocation.status === 'granted' && userLocation.address) {
+      heroLoc.innerHTML = `📍 ${escapeHTML(userLocation.address)}`;
+    } else if (userLocation.status === 'locating') {
+      heroLoc.innerHTML = '📍 Acquiring GPS location...';
+    } else if (userLocation.status === 'denied') {
+      heroLoc.innerHTML = '📍 Location permission denied';
+    } else {
+      heroLoc.innerHTML = '📍 Location not configured';
+    }
+  }
+
+  const dashSummary = document.getElementById('dashboard-location-summary');
+  if (dashSummary) {
+    if (roadData.profile.location) {
+      dashSummary.textContent = roadData.profile.location;
+    } else if (userLocation.status === 'granted') {
+      dashSummary.textContent = `${userLocation.address || `${userLocation.lat.toFixed(4)}, ${userLocation.lon.toFixed(4)}`} (GPS)`;
+    } else if (userLocation.status === 'locating') {
+      dashSummary.textContent = 'Acquiring GPS location...';
+    } else if (userLocation.status === 'denied') {
+      dashSummary.textContent = 'Location access denied';
+    } else {
+      dashSummary.textContent = 'Not provided';
+    }
+  }
+}
+
+function requestUserLocation(onSuccess, onError) {
+  if (!navigator.geolocation) {
+    userLocation.status = 'error';
+    userLocation.errorMessage = 'Geolocation is not supported by your browser.';
+    updateLocationSummaryUI();
+    if (onError) onError(userLocation.errorMessage);
+    renderNearbyServices();
+    return;
+  }
+
+  userLocation.status = 'locating';
+  userLocation.errorMessage = '';
+  updateLocationSummaryUI();
+  renderNearbyServices();
+
+  navigator.geolocation.getCurrentPosition(
+    position => {
+      userLocation.lat = position.coords.latitude;
+      userLocation.lon = position.coords.longitude;
+      userLocation.status = 'granted';
+      userLocation.errorMessage = '';
+
+      reverseGeocodeLocation(userLocation.lat, userLocation.lon);
+
+      if (onSuccess) {
+        onSuccess(userLocation.lat, userLocation.lon);
+      } else {
+        fetchRealNearbyServices(userLocation.lat, userLocation.lon);
+      }
+
+      updateLocationSummaryUI();
+      renderDashboard();
+    },
+    error => {
+      if (error.code === error.PERMISSION_DENIED) {
+        userLocation.status = 'denied';
+        userLocation.errorMessage = 'Location access was blocked or denied. RoadSOS requires your GPS coordinates to discover real emergency services nearby.';
+      } else if (error.code === error.TIMEOUT) {
+        userLocation.status = 'error';
+        userLocation.errorMessage = 'The request to obtain your GPS location timed out. Please check device location settings and try again.';
+      } else if (error.code === error.POSITION_UNAVAILABLE) {
+        userLocation.status = 'error';
+        userLocation.errorMessage = 'GPS position information is currently unavailable from your device.';
+      } else {
+        userLocation.status = 'error';
+        userLocation.errorMessage = 'Unable to determine your location. Please check device location settings.';
+      }
+
+      updateLocationSummaryUI();
+      if (onError) onError(userLocation.errorMessage);
+      renderNearbyServices();
+      renderDashboard();
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+}
+
+async function reverseGeocodeLocation(lat, lon) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+    if (res.ok) {
+      const data = await res.json();
+      const addr = data.address || {};
+      const parts = [
+        addr.road || addr.pedestrian || addr.street || addr.neighbourhood,
+        addr.suburb || addr.district || addr.quarter,
+        addr.city || addr.town || addr.village || addr.county,
+        addr.state
+      ].filter(Boolean);
+      userLocation.address = parts.join(', ') || data.display_name.split(',').slice(0, 3).join(',');
+
+      updateLocationSummaryUI();
+    }
+  } catch (e) {
+    console.warn('Reverse geocoding error:', e);
+  }
+}
+
+function refreshNearbyLocationAndServices() {
+  requestUserLocation(
+    (lat, lon) => fetchRealNearbyServices(lat, lon),
+    () => renderNearbyServices()
+  );
+}
+
+function parseOverpassElement(el, userLat, userLon) {
+  const sLat = el.lat != null ? el.lat : el.center?.lat;
+  const sLon = el.lon != null ? el.lon : el.center?.lon;
+  if (sLat == null || sLon == null) return null;
+
+  const tags = el.tags || {};
+  let category = 'rescue';
+  let subtitle = '';
+
+  if (tags.amenity === 'hospital' || tags.amenity === 'clinic') {
+    category = 'hospital';
+    subtitle = tags.emergency === 'yes' ? 'Emergency & Trauma Hospital' : 'Medical Hospital';
+  } else if (tags.amenity === 'police') {
+    category = 'police';
+    subtitle = 'Police Station & Law Enforcement';
+  } else if (tags.emergency === 'ambulance_station' || tags.amenity === 'ambulance_station') {
+    category = 'ambulance';
+    subtitle = 'Emergency Medical Services (EMS)';
+  } else if (tags.shop === 'car_repair' || tags.emergency === 'towing' || tags.service === 'breakdown') {
+    category = 'rescue';
+    subtitle = tags.emergency === 'towing' ? 'Emergency Towing Service' : 'Vehicle Recovery & Roadside Assistance';
+  }
+
+  const name = (tags.name || tags['name:en'] || '').trim();
+  if (!name) return null;
+
+  const addrParts = [
+    tags['addr:housenumber'],
+    tags['addr:street'],
+    tags['addr:suburb'] || tags['addr:district'],
+    tags['addr:city'] || tags['addr:town'] || tags['addr:village']
+  ].filter(Boolean);
+
+  const address = addrParts.length > 0 ? addrParts.join(', ') : `${sLat.toFixed(5)}, ${sLon.toFixed(5)}`;
+  const phone = tags.phone || tags['contact:phone'] || tags['phone:mobile'] || null;
+  const hours = tags.opening_hours || null;
+  const dist = calculateHaversineDistance(userLat, userLon, sLat, sLon);
+
+  return {
+    id: `osm_${el.type || 'n'}_${el.id}`,
+    type: category,
+    name: name,
+    subtitle: subtitle,
+    distance: dist,
+    address: address,
+    lat: sLat,
+    lon: sLon,
+    phone: phone,
+    status: hours,
+    website: tags.website || tags['contact:website'] || null
+  };
+}
+
+function parseNominatimService(item, category, userLat, userLon) {
+  const sLat = parseFloat(item.lat);
+  const sLon = parseFloat(item.lon);
+  if (isNaN(sLat) || isNaN(sLon)) return null;
+
+  const dist = calculateHaversineDistance(userLat, userLon, sLat, sLon);
+  let name = (item.name || '').trim();
+  if (!name) {
+    name = item.address?.amenity || item.address?.shop || item.display_name.split(',')[0].trim();
+  }
+  if (!name) return null;
+
+  let subtitle = '';
+  if (category === 'hospital') {
+    subtitle = item.address?.emergency === 'yes' ? 'Emergency & Trauma Hospital' : 'Medical Hospital';
+  } else if (category === 'police') {
+    subtitle = 'Police Station & Law Enforcement';
+  } else if (category === 'ambulance') {
+    subtitle = 'Emergency Medical Services (EMS)';
+  } else if (category === 'rescue') {
+    subtitle = 'Vehicle Recovery & Roadside Assistance';
+  }
+
+  const phone = item.extratags?.phone || item.extratags?.['contact:phone'] || item.extratags?.['phone:mobile'] || null;
+  const hours = item.extratags?.opening_hours || null;
+
+  return {
+    id: 'osm_' + (item.place_id || `${sLat.toFixed(4)}_${sLon.toFixed(4)}`),
+    type: category,
+    name: name,
+    subtitle: subtitle,
+    distance: dist,
+    address: item.display_name,
+    lat: sLat,
+    lon: sLon,
+    phone: phone,
+    status: hours,
+    website: item.extratags?.website || null
+  };
+}
+
+async function fetchRealNearbyServices(lat, lon) {
+  if (lat == null || lon == null) {
+    if (userLocation.lat != null && userLocation.lon != null) {
+      lat = userLocation.lat;
+      lon = userLocation.lon;
+    } else {
+      requestUserLocation(
+        (nLat, nLon) => fetchRealNearbyServices(nLat, nLon),
+        () => renderNearbyServices()
+      );
+      return;
+    }
+  }
+
+  isServicesLoading = true;
+  servicesFetchError = null;
+  renderNearbyServices();
+  renderServicesGrid();
+
+  const delta = 0.15; // Search window ~15km
+  const minLon = (lon - delta).toFixed(5);
+  const maxLon = (lon + delta).toFixed(5);
+  const minLat = (lat - delta).toFixed(5);
+  const maxLat = (lat + delta).toFixed(5);
+  const viewbox = `${minLon},${maxLat},${maxLon},${minLat}`;
+
+  const categorizedResults = {
+    hospital: [],
+    ambulance: [],
+    police: [],
+    rescue: []
+  };
+
+  let fetchedAny = false;
+
+  // 1. Try Overpass API first with a controlled timeout
+  try {
+    const overpassQuery = `[out:json][timeout:6];
+(
+  node["amenity"="hospital"](around:15000,${lat},${lon});
+  way["amenity"="hospital"](around:15000,${lat},${lon});
+  node["amenity"="police"](around:15000,${lat},${lon});
+  way["amenity"="police"](around:15000,${lat},${lon});
+  node["emergency"="ambulance_station"](around:15000,${lat},${lon});
+  node["amenity"="ambulance_station"](around:15000,${lat},${lon});
+  node["shop"="car_repair"](around:15000,${lat},${lon});
+  node["emergency"="towing"](around:15000,${lat},${lon});
+);
+out center 40;`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    const overpassRes = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: 'data=' + encodeURIComponent(overpassQuery),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (overpassRes.ok) {
+      const data = await overpassRes.json();
+      if (Array.isArray(data.elements)) {
+        data.elements.forEach(el => {
+          const parsed = parseOverpassElement(el, lat, lon);
+          if (parsed && categorizedResults[parsed.type]) {
+            categorizedResults[parsed.type].push(parsed);
+            fetchedAny = true;
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('Overpass attempt skipped or timed out, using OSM Nominatim discovery:', err);
+  }
+
+  // 2. Discover / backfill any categories via OpenStreetMap Nominatim search
+  const categoriesToQuery = [
+    { key: 'hospital', query: 'hospital' },
+    { key: 'police', query: 'police' },
+    { key: 'ambulance', query: 'ambulance' },
+    { key: 'rescue', query: 'car repair' }
+  ];
+
+  const neededCategories = categoriesToQuery.filter(c => categorizedResults[c.key].length === 0);
+
+  if (neededCategories.length > 0) {
+    try {
+      const fetchPromises = neededCategories.map(async item => {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(item.query)}&addressdetails=1&extratags=1&limit=8&viewbox=${viewbox}&bounded=1`;
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          return { key: item.key, items: Array.isArray(data) ? data : [] };
+        } catch (err) {
+          console.warn(`Query for ${item.key} failed:`, err);
+          return { key: item.key, items: [] };
+        }
+      });
+
+      const results = await Promise.all(fetchPromises);
+      results.forEach(r => {
+        const parsedList = r.items
+          .map(item => parseNominatimService(item, r.key, lat, lon))
+          .filter(Boolean);
+        if (parsedList.length > 0) {
+          categorizedResults[r.key].push(...parsedList);
+          fetchedAny = true;
+        }
+      });
+    } catch (err) {
+      console.warn('Nominatim discovery partial error:', err);
+    }
+  }
+
+  // Deduplicate and sort each category by actual Haversine distance
+  ['hospital', 'ambulance', 'police', 'rescue'].forEach(cat => {
+    const seen = new Set();
+    const unique = [];
+    for (const item of categorizedResults[cat]) {
+      const coordKey = `${item.lat.toFixed(4)}_${item.lon.toFixed(4)}`;
+      const nameKey = (item.name || '').toLowerCase();
+      if (!seen.has(coordKey) && !seen.has(nameKey)) {
+        seen.add(coordKey);
+        seen.add(nameKey);
+        unique.push(item);
+      }
+    }
+    unique.sort((a, b) => a.distance - b.distance);
+    realNearbyServices[cat] = unique;
+  });
+
+  isServicesLoading = false;
+  if (!fetchedAny && Object.values(categorizedResults).every(arr => arr.length === 0)) {
+    // Only flag error if there was a network/protocol issue
+    servicesFetchError = null; // No services found is handled by the empty state view
+  } else {
+    servicesFetchError = null;
+  }
+
+  renderNearbyServices();
+  renderServicesGrid();
+  updateServicesMap();
+}
+
+function getAllRealServices() {
+  const combined = [
+    ...realNearbyServices.hospital,
+    ...realNearbyServices.ambulance,
+    ...realNearbyServices.police,
+    ...realNearbyServices.rescue
+  ];
+
+  const seen = new Set();
+  const deduped = [];
+  for (const s of combined) {
+    if (!s || s.lat == null || s.lon == null) continue;
+    const coordKey = `${s.lat.toFixed(4)}_${s.lon.toFixed(4)}`;
+    const idKey = s.id || '';
+    if (seen.has(coordKey) || (idKey && seen.has(idKey))) {
+      continue;
+    }
+    seen.add(coordKey);
+    if (idKey) seen.add(idKey);
+    deduped.push(s);
+  }
+
+  deduped.sort((a, b) => a.distance - b.distance);
+  return deduped;
+}
+
+function renderNearbyServices() {
+  const container = document.getElementById('nearby-list-container');
+  const locSubtitle = document.getElementById('nearby-location-subtitle');
+  if (!container) return;
+
+  if (userLocation.status === 'granted' && userLocation.address) {
+    locSubtitle.textContent = `📍 ${userLocation.address} (${userLocation.lat.toFixed(4)}, ${userLocation.lon.toFixed(4)})`;
+  } else if (userLocation.status === 'locating') {
+    locSubtitle.textContent = '📍 Acquiring current GPS coordinates...';
+  } else if (userLocation.status === 'denied') {
+    locSubtitle.textContent = '📍 Location permission denied';
+  } else if (roadData.profile.location) {
+    locSubtitle.textContent = `📍 Profile: ${roadData.profile.location}`;
+  } else {
+    locSubtitle.textContent = '📍 Location not configured';
+  }
+
+  document.querySelectorAll('.filter-chip').forEach(btn => {
+    const text = btn.textContent.toLowerCase();
+    const isActive = (currentNearbyFilter === 'all' && text.includes('all')) ||
+                     (currentNearbyFilter !== 'all' && text.includes(currentNearbyFilter));
+    btn.classList.toggle('active', isActive);
+  });
+
+  // State 1: Requesting GPS location
+  if (userLocation.status === 'locating') {
+    container.innerHTML = `
+      <div class="services-state" id="state-requesting-location">
+        <div class="spinner"></div>
+        <h4>Requesting GPS Location...</h4>
+        <p>Waiting for GPS coordinates from your browser. Please allow location access when prompted.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // State 2: Location permission denied
+  if (userLocation.status === 'denied') {
+    container.innerHTML = `
+      <div class="services-state" id="state-location-denied">
+        <div class="state-icon">🚫</div>
+        <h4>Location Permission Denied</h4>
+        <p>Location access was blocked or denied. RoadSOS requires your GPS coordinates to discover real emergency services nearby.</p>
+        <button type="button" class="btn-primary" onclick="refreshNearbyLocationAndServices()">
+          <i class="ti ti-reload"></i> Retry Location Request
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  // Location error
+  if (userLocation.status === 'error') {
+    container.innerHTML = `
+      <div class="services-state" id="state-location-error">
+        <div class="state-icon">⚠️</div>
+        <h4>Unable to Acquire Location</h4>
+        <p>${escapeHTML(userLocation.errorMessage || 'Please check that device location is enabled and try again.')}</p>
+        <button type="button" class="btn-primary" onclick="refreshNearbyLocationAndServices()">
+          <i class="ti ti-reload"></i> Retry Location Request
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  // Location idle (unprompted)
+  if (userLocation.status === 'idle') {
+    container.innerHTML = `
+      <div class="services-state" id="state-location-idle">
+        <div class="state-icon">📡</div>
+        <h4>Discover Real Emergency Services</h4>
+        <p>RoadSOS uses your actual GPS coordinates to discover verified hospitals, police stations, ambulance facilities, and rescue services around you.</p>
+        <button type="button" class="btn-primary" onclick="refreshNearbyLocationAndServices()">
+          <i class="ti ti-current-location"></i> Detect My Current Location
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  // State 3: Loading services
+  if (isServicesLoading) {
+    container.innerHTML = `
+      <div class="services-state" id="state-loading-services">
+        <div class="spinner"></div>
+        <h4>Loading Nearby Emergency Services...</h4>
+        <p>Querying OpenStreetMap for verified emergency facilities around ${userLocation.lat != null ? `(${userLocation.lat.toFixed(4)}, ${userLocation.lon.toFixed(4)})` : 'your coordinates'}...</p>
+      </div>
+    `;
+    return;
+  }
+
+  // State 5: API / Service failure
+  if (servicesFetchError) {
+    container.innerHTML = `
+      <div class="services-state" id="state-services-failure">
+        <div class="state-icon">⚠️</div>
+        <h4>Emergency Service Discovery Failed</h4>
+        <p>${escapeHTML(servicesFetchError)}</p>
+        <button type="button" class="btn-primary" onclick="fetchRealNearbyServices()">
+          <i class="ti ti-reload"></i> Retry
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  let itemsToDisplay = [];
+  if (currentNearbyFilter === 'all') {
+    itemsToDisplay = getAllRealServices();
+  } else {
+    itemsToDisplay = realNearbyServices[currentNearbyFilter] || [];
+  }
+
+  // State 4: No nearby services found
+  if (itemsToDisplay.length === 0) {
+    const categoryLabels = {
+      hospital: 'hospitals',
+      ambulance: 'ambulance services',
+      police: 'police stations',
+      rescue: 'rescue / towing services',
+      all: 'emergency services'
+    };
+    const label = categoryLabels[currentNearbyFilter] || 'services';
+    container.innerHTML = `
+      <div class="services-state" id="state-no-services">
+        <div class="state-icon">🔍</div>
+        <h4>No Nearby ${label.charAt(0).toUpperCase() + label.slice(1)} Found</h4>
+        <p>No verified ${label} were located within the immediate search area around your coordinates.</p>
+        <button type="button" class="btn-primary" onclick="fetchRealNearbyServices()">
+          <i class="ti ti-reload"></i> Retry Search
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = '';
+  itemsToDisplay.forEach(svc => {
+    const iconData = getServiceIcon(svc.type);
+    const item = document.createElement('div');
+    item.className = 'nearby-item';
+    item.setAttribute('data-id', svc.id);
+    item.onclick = (e) => {
+      if (e.target.closest('.nearby-call-btn')) return;
+      openServiceDetailModal(svc);
+    };
+
+    const hasPhone = Boolean(svc.phone && String(svc.phone).trim());
+    const hasStatus = Boolean(svc.status && String(svc.status).trim());
+
+    item.innerHTML = `
+      <div class="nearby-icon" style="background:${iconData.bg}">${iconData.emoji}</div>
+      <div class="nearby-info" style="flex:1;min-width:0">
+        <h4 class="svc-card-title">${escapeHTML(svc.name)}</h4>
+        <p class="svc-card-category">${escapeHTML(svc.subtitle || iconData.label)}</p>
+        <div class="nearby-addr">${escapeHTML(svc.address)}</div>
+        ${hasStatus ? `<div class="status-open">🕒 ${escapeHTML(svc.status)}</div>` : ''}
+      </div>
+      <div class="nearby-dist">
+        <span class="svc-card-distance">${svc.distance.toFixed(1)} km</span>
+        ${hasPhone ? `<button class="nearby-call-btn" onclick="event.stopPropagation();callPhone('${escapeHTML(svc.phone)}')">📞 Call</button>` : ''}
+      </div>
+    `;
+    container.appendChild(item);
+  });
+}
+
+function filterNearby(type, btn) {
+  currentNearbyFilter = type;
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderNearbyServices();
+  updateServicesMap();
+}
+
+function openServiceDetailModal(svc) {
+  const existing = document.querySelector('.service-modal-backdrop');
+  if (existing) existing.remove();
+
+  const iconData = getServiceIcon(svc.type);
+  const modal = document.createElement('div');
+  modal.className = 'service-modal-backdrop';
+  modal.onclick = (e) => {
+    if (e.target === modal) modal.remove();
+  };
+
+  const hasPhone = Boolean(svc.phone && String(svc.phone).trim());
+  const hasHours = Boolean(svc.status && String(svc.status).trim());
+
+  const phoneSection = hasPhone
+    ? `<div class="service-modal-row">
+         <span class="modal-label">Phone:</span>
+         <span class="modal-val"><a href="tel:${escapeHTML(svc.phone)}" style="color:var(--blue);font-weight:700">${escapeHTML(svc.phone)}</a></span>
+       </div>`
+    : `<div class="service-modal-row">
+         <span class="modal-label">Phone:</span>
+         <span class="modal-val" style="color:var(--muted)">Not provided by OpenStreetMap</span>
+       </div>`;
+
+  const hoursSection = hasHours
+    ? `<div class="service-modal-row">
+         <span class="modal-label">Opening Hours:</span>
+         <span class="modal-val" style="color:var(--green);font-weight:700">${escapeHTML(svc.status)}</span>
+       </div>`
+    : `<div class="service-modal-row">
+         <span class="modal-label">Opening Hours:</span>
+         <span class="modal-val" style="color:var(--muted)">Not listed</span>
+       </div>`;
+
+  // Requirement 7: Call buttons must use actual phone and be hidden when no phone exists
+  const callButton = hasPhone
+    ? `<button type="button" class="btn-primary" style="flex:1;justify-content:center" onclick="callPhone('${escapeHTML(svc.phone)}')">📞 Call ${escapeHTML(svc.phone)}</button>`
+    : '';
+
+  modal.innerHTML = `
+    <div class="service-modal" role="dialog" aria-modal="true" aria-labelledby="modal-svc-title">
+      <div class="service-modal-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="nearby-icon" style="background:${iconData.bg};width:42px;height:42px;font-size:22px">${iconData.emoji}</div>
+          <div>
+            <span class="repeater-tag">${escapeHTML(iconData.label)}</span>
+            <h3 id="modal-svc-title" style="font-size:16px;font-family:var(--font-heading);margin-top:2px">${escapeHTML(svc.name)}</h3>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" aria-label="Close" onclick="this.closest('.service-modal-backdrop').remove()">✕</button>
+      </div>
+      <div class="service-modal-body">
+        <div class="service-modal-row">
+          <span class="modal-label">Calculated Distance:</span>
+          <span class="modal-val" style="font-weight:800;color:var(--blue)">${svc.distance.toFixed(2)} km from current location</span>
+        </div>
+        <div class="service-modal-row">
+          <span class="modal-label">Category:</span>
+          <span class="modal-val">${escapeHTML(svc.subtitle || iconData.label)}</span>
+        </div>
+        <div class="service-modal-row">
+          <span class="modal-label">Address:</span>
+          <span class="modal-val">${escapeHTML(svc.address)}</span>
+        </div>
+        <div class="service-modal-row">
+          <span class="modal-label">Coordinates:</span>
+          <span class="modal-val" style="font-family:monospace">${svc.lat.toFixed(5)}, ${svc.lon.toFixed(5)}</span>
+        </div>
+        ${hoursSection}
+        ${phoneSection}
+      </div>
+      <div class="service-modal-actions">
+        ${callButton}
+        <a href="https://www.google.com/maps/dir/?api=1&destination=${svc.lat},${svc.lon}" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="text-decoration:none;flex:1;justify-content:center">
+          🗺️ Directions
+        </a>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function updateServicesMap() {
+  const mapEl = document.getElementById('services-map');
+  if (!mapEl || typeof L === 'undefined') return;
+
+  if (userLocation.status !== 'granted' || userLocation.lat == null) {
+    mapEl.style.display = 'none';
+    return;
+  }
+  mapEl.style.display = 'block';
+
+  try {
+    if (!leafletMapInstance) {
+      leafletMapInstance = L.map('services-map', {
+        zoomControl: true,
+        attributionControl: false
+      }).setView([userLocation.lat, userLocation.lon], 13);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19
+      }).addTo(leafletMapInstance);
+    } else {
+      leafletMapInstance.setView([userLocation.lat, userLocation.lon], 13);
+      leafletMapInstance.invalidateSize();
+    }
+
+    leafletMarkers.forEach(m => m.remove());
+    leafletMarkers = [];
+
+    const userMarker = L.circleMarker([userLocation.lat, userLocation.lon], {
+      radius: 9,
+      fillColor: '#1565C0',
+      color: '#FFFFFF',
+      weight: 3,
+      opacity: 1,
+      fillOpacity: 0.95
+    }).addTo(leafletMapInstance);
+    userMarker.bindPopup(`<b>Your Current Location</b><br>${escapeHTML(userLocation.address || 'Active GPS Position')}`);
+    leafletMarkers.push(userMarker);
+
+    const displayed = currentNearbyFilter === 'all'
+      ? getAllRealServices()
+      : (realNearbyServices[currentNearbyFilter] || []);
+
+    displayed.slice(0, 15).forEach(svc => {
+      const iconData = getServiceIcon(svc.type);
+      const color = svc.type === 'hospital' ? '#D32F2F' : svc.type === 'police' ? '#1565C0' : svc.type === 'ambulance' ? '#2E7D32' : '#FF6B00';
+      const marker = L.circleMarker([svc.lat, svc.lon], {
+        radius: 7,
+        fillColor: color,
+        color: '#FFFFFF',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.9
+      }).addTo(leafletMapInstance);
+
+      marker.bindPopup(`
+        <div style="font-family:sans-serif;font-size:12px">
+          <b>${iconData.emoji} ${escapeHTML(svc.name)}</b><br>
+          <span style="color:#666">${svc.distance.toFixed(1)} km away</span><br>
+          ${svc.phone ? `<a href="tel:${escapeHTML(svc.phone)}" style="color:#1565C0;font-weight:bold">📞 ${escapeHTML(svc.phone)}</a>` : ''}
+        </div>
+      `);
+      leafletMarkers.push(marker);
+    });
+  } catch (e) {
+    console.warn('Leaflet map error:', e);
+  }
+}
+
+// ===== DASHBOARD RENDERING =====
+
 function renderDashboard() {
   const configured = isProfileConfigured();
   const p = roadData.profile;
   const inc = roadData.incident;
 
-  // Hero section
   const heroName = document.getElementById('hero-name');
   const heroLoc = document.getElementById('hero-loc');
   const heroPhone = document.getElementById('hero-phone');
@@ -792,10 +1641,11 @@ function renderDashboard() {
   const heroStatusDot = document.getElementById('hero-status-dot');
   const heroStatusText = document.getElementById('hero-status-text');
   const emptyCard = document.getElementById('dashboard-empty-card');
+  const dashLocSummary = document.getElementById('dashboard-location-summary');
 
   if (configured) {
     heroName.textContent = p.name;
-    heroLoc.innerHTML = `📍 ${escapeHTML(p.location)}`;
+    heroLoc.innerHTML = `📍 ${escapeHTML(p.location || 'Location not specified')}`;
     if (p.phone) {
       heroPhone.style.display = 'flex';
       heroPhone.querySelector('span').textContent = p.phone;
@@ -804,95 +1654,62 @@ function renderDashboard() {
     }
     heroGreeting.textContent = 'Welcome back 👋';
     heroStatusDot.className = 'status-dot';
-    heroStatusText.textContent = 'Active & Protected';
+    heroStatusText.textContent = 'Profile Ready';
     emptyCard.style.display = 'none';
+    dashLocSummary.textContent = p.location || (userLocation.address ? `${userLocation.address} (GPS)` : 'Not provided');
   } else {
     heroName.textContent = 'Welcome to RoadSOS';
-    heroLoc.innerHTML = '📍 Location not configured';
+    heroLoc.innerHTML = userLocation.address ? `📍 ${userLocation.address}` : '📍 Location not configured';
     heroPhone.style.display = 'none';
     heroGreeting.textContent = 'Get started 👋';
     heroStatusDot.className = 'status-dot warning';
     heroStatusText.textContent = 'Setup Required';
     emptyCard.style.display = 'block';
+    dashLocSummary.textContent = userLocation.address ? `${userLocation.address} (GPS)` : 'Not provided';
   }
 
-  // Incident Bar
+  // Incident bar
   const incTypeEl = document.getElementById('dash-inc-type');
   const incDescEl = document.getElementById('dash-inc-desc');
-  if (inc && inc.type) {
-    incTypeEl.textContent = `⚠️ Incident: ${inc.type}`;
-    incDescEl.textContent = `Condition: ${inc.condition || 'Not specified'} · ${inc.people || 1} people involved`;
+  if (inc && (inc.type || inc.condition || inc.notes || inc.people)) {
+    incTypeEl.textContent = `⚠️ Incident: ${inc.type || 'Not specified'}`;
+    const incidentDetails = [
+      inc.condition,
+      inc.people ? `${inc.people} ${Number(inc.people) === 1 ? 'person' : 'people'} involved` : '',
+      inc.notes
+    ].filter(Boolean);
+    incDescEl.textContent = incidentDetails.join(' · ') || 'Active incident recorded';
   } else {
-    incTypeEl.textContent = '⚠️ Incident: Ready & Monitoring';
-    incDescEl.textContent = 'No active emergency reported';
+    incTypeEl.textContent = '⚠️ Current incident';
+    incDescEl.textContent = 'No incident details entered';
   }
 
-  // Dynamic Map Markers
-  renderMapMarkers();
+  // Contacts
+  renderContactsRow();
 
   // Services Grid
   renderServicesGrid();
 
-  // Contacts Row
-  renderContactsRow();
-
-  // Safety Tip
+  // Safety tip
   const tipText = document.getElementById('dashboard-tip-text');
   if (roadData.safetyTip && roadData.safetyTip.trim()) {
     tipText.textContent = roadData.safetyTip.trim();
-  } else if (configured) {
-    tipText.textContent = 'Tip: Always keep an emergency contact on speed dial and inspect tire pressure before long trips.';
   } else {
-    tipText.textContent = 'No custom safety tip configured. Enter your custom tip in Setup.';
+    tipText.textContent = 'Always remain in a safe location behind guardrails if stopped on a high-speed road.';
   }
 
-  // Update AI Greeting
+  // AI Greeting
   const aiWelcome = document.getElementById('ai-welcome-msg');
   if (configured) {
-    aiWelcome.textContent = `Hello ${p.name}! 🛡️ I am your RoadSoS AI assistant. I have your location as ${p.location}. How can I assist with your safety or vehicle right now?`;
+    aiWelcome.textContent = `Hello ${p.name}! 🛡️ I am your RoadSoS AI assistant. I have your location as ${p.location || 'saved'}. How can I assist with your safety or vehicle right now?`;
   } else {
-    aiWelcome.textContent = `Hello! 🛡️ I'm your RoadSoS AI assistant. Please configure your profile in Setup so I can provide location-specific emergency guidance. How can I help right now?`;
+    aiWelcome.textContent = `Hello! 🛡️ I'm your RoadSoS AI assistant. Set up your emergency profile in Setup so I can provide customized emergency guidance. How can I help right now?`;
   }
 }
 
-// Render dynamic service markers on the simulated map
-function renderMapMarkers() {
-  const container = document.getElementById('map-dynamic-markers');
-  container.innerHTML = '';
-
-  if (!roadData.services || roadData.services.length === 0) {
-    return;
-  }
-
-  // Define preset coordinate slots for aesthetic placement on the graphic road map
-  const markerSlots = [
-    { top: '15%', left: '12%', color: '#C62828', bg: '#FFEBEE' },
-    { top: '45%', right: '6%', color: '#1565C0', bg: '#E3F0FF' },
-    { top: '68%', left: '55%', color: '#2E7D32', bg: '#E8F5E9' },
-    { top: '18%', right: '14%', color: '#E65100', bg: '#FFF3E8' }
-  ];
-
-  roadData.services.slice(0, 4).forEach((svc, index) => {
-    const slot = markerSlots[index];
-    const iconData = getServiceIcon(svc.type);
-    const marker = document.createElement('div');
-    marker.className = 'map-marker';
-    marker.style.top = slot.top;
-    if (slot.left) marker.style.left = slot.left;
-    if (slot.right) marker.style.right = slot.right;
-    marker.style.background = slot.bg;
-    marker.style.color = slot.color;
-
-    const shortName = svc.name.length > 12 ? svc.name.substring(0, 11) + '…' : svc.name;
-    marker.innerHTML = `${iconData.emoji} ${escapeHTML(shortName)} ${Number(svc.distance || 0).toFixed(1)}km`;
-    marker.onclick = () => showScreen('nearby');
-    container.appendChild(marker);
-  });
-}
-
-// Render the 4 category service cards on Dashboard
 function renderServicesGrid() {
   const grid = document.getElementById('dashboard-services-grid');
+  if (!grid) return;
   grid.innerHTML = '';
 
   const categories = [
@@ -903,18 +1720,22 @@ function renderServicesGrid() {
   ];
 
   categories.forEach(cat => {
-    const matching = roadData.services.filter(s => s.type === cat.type);
+    const matching = realNearbyServices[cat.type] || [];
     const count = matching.length;
     
-    let subtitle = count === 0 ? 'None configured' : `${count} entered`;
-    let distText = '→ Tap to add';
+    let subtitle = 'Tap to locate';
+    let distText = '→ Locate';
 
-    if (count > 0) {
-      // Find lowest distance entered
-      const sorted = [...matching].sort((a, b) => Number(a.distance || 0) - Number(b.distance || 0));
-      const nearest = sorted[0];
-      distText = `→ ${Number(nearest.distance || 0).toFixed(1)} km`;
-      subtitle = nearest.name.length > 14 ? nearest.name.substring(0, 13) + '…' : nearest.name;
+    if (isServicesLoading) {
+      subtitle = 'Searching...';
+      distText = '...';
+    } else if (count > 0) {
+      const nearest = matching[0];
+      subtitle = `${count} nearby`;
+      distText = `→ ${nearest.distance.toFixed(1)} km`;
+    } else if (userLocation.status === 'granted') {
+      subtitle = 'None nearby';
+      distText = '→ View';
     }
 
     const card = document.createElement('div');
@@ -922,6 +1743,9 @@ function renderServicesGrid() {
     card.onclick = () => {
       currentNearbyFilter = cat.type;
       showScreen('nearby');
+      if (userLocation.status === 'idle') {
+        requestUserLocation(() => fetchRealNearbyServices(), () => renderNearbyServices());
+      }
     };
     card.innerHTML = `
       <div class="svc-icon" style="background:${cat.bg}">${cat.icon}</div>
@@ -935,16 +1759,19 @@ function renderServicesGrid() {
   });
 }
 
-// Render Emergency Contacts horizontal chip list
 function renderContactsRow() {
   const container = document.getElementById('dashboard-contacts-row');
+  if (!container) return;
   container.innerHTML = '';
 
   if (!roadData.contacts || roadData.contacts.length === 0) {
-    const hint = document.createElement('div');
-    hint.className = 'contacts-empty-hint';
-    hint.textContent = 'No emergency contacts entered yet.';
-    container.appendChild(hint);
+    const emptyBox = document.createElement('div');
+    emptyBox.className = 'contacts-empty-box';
+    emptyBox.innerHTML = `
+      <span class="contacts-empty-hint">No emergency contacts added yet.</span>
+      <button type="button" class="btn-primary" style="padding:6px 12px;font-size:11px" onclick="showScreen('profile')">Add Emergency Contact</button>
+    `;
+    container.appendChild(emptyBox);
   } else {
     roadData.contacts.forEach((c, idx) => {
       const chip = document.createElement('div');
@@ -962,156 +1789,133 @@ function renderContactsRow() {
       };
       container.appendChild(chip);
     });
+
+    const addBtn = document.createElement('div');
+    addBtn.className = 'contact-add';
+    addBtn.title = 'Add / Edit Contacts';
+    addBtn.textContent = '+';
+    addBtn.onclick = () => showScreen('profile');
+    container.appendChild(addBtn);
   }
-
-  // Add "+" chip
-  const addBtn = document.createElement('div');
-  addBtn.className = 'contact-add';
-  addBtn.title = 'Add / Edit Contacts';
-  addBtn.textContent = '+';
-  addBtn.onclick = () => showScreen('profile');
-  container.appendChild(addBtn);
-}
-
-// Render Nearby Services Screen
-function renderNearbyServices() {
-  const container = document.getElementById('nearby-list-container');
-  const locSubtitle = document.getElementById('nearby-location-subtitle');
-  container.innerHTML = '';
-
-  locSubtitle.textContent = roadData.profile.location 
-    ? `📍 ${roadData.profile.location}`
-    : '📍 Location not configured';
-
-  // Apply active category filter tab
-  document.querySelectorAll('.filter-chip').forEach(btn => {
-    btn.classList.toggle('active', btn.textContent.toLowerCase().includes(currentNearbyFilter) || (currentNearbyFilter === 'all' && btn.textContent === 'All'));
-  });
-
-  const filtered = currentNearbyFilter === 'all' 
-    ? roadData.services 
-    : roadData.services.filter(s => s.type === currentNearbyFilter);
-
-  if (!filtered || filtered.length === 0) {
-    container.innerHTML = `
-      <div style="text-align:center;padding:40px 20px;background:var(--card);border-radius:14px;border:1px dashed var(--border)">
-        <div style="font-size:36px;margin-bottom:10px">🔍</div>
-        <div style="font-weight:700;font-size:15px;margin-bottom:4px">No ${currentNearbyFilter === 'all' ? 'services' : currentNearbyFilter + ' services'} entered</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">You can add your local emergency hospitals, police, ambulances, and towing services in Setup.</div>
-        <button class="btn-primary" onclick="showScreen('profile')">⚙️ Add Services in Setup</button>
-      </div>
-    `;
-    return;
-  }
-
-  // Sort by distance
-  const sorted = [...filtered].sort((a, b) => Number(a.distance || 0) - Number(b.distance || 0));
-
-  sorted.forEach(svc => {
-    const iconData = getServiceIcon(svc.type);
-    const distNum = Number(svc.distance || 0);
-    const estTime = Math.max(1, Math.round(distNum * 2.8));
-
-    const item = document.createElement('div');
-    item.className = 'nearby-item';
-    item.innerHTML = `
-      <div class="nearby-icon" style="background:${iconData.bg}">${iconData.emoji}</div>
-      <div class="nearby-info" style="flex:1">
-        <h4>${escapeHTML(svc.name)}</h4>
-        <p>${escapeHTML(svc.subtitle || iconData.label)}</p>
-        <div class="status-open">● ${escapeHTML(svc.status || 'AVAILABLE')}</div>
-      </div>
-      <div class="nearby-dist">
-        <span>${distNum.toFixed(1)} km</span>
-        <small>~${estTime} min</small>
-        ${svc.phone ? `<br><button class="nearby-call-btn" onclick="callPhone('${escapeHTML(svc.phone)}')">📞 Call</button>` : ''}
-      </div>
-    `;
-    container.appendChild(item);
-  });
-}
-
-function filterNearby(type, btn) {
-  currentNearbyFilter = type;
-  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  renderNearbyServices();
-}
-
-function callPhone(num) {
-  showToast(`Simulated Call to: ${num}`);
 }
 
 // ===== SOS SCREEN LOGIC =====
+
 function triggerSOS() {
   if (!isProfileConfigured()) {
-    showToast('Please set up your profile and location first');
+    showToast('Please configure your emergency profile before activating Emergency Mode.');
     showScreen('profile');
     return;
   }
 
+  if (document.querySelector('.sos-confirm-backdrop')) return;
+  let countdown = 4;
+  const backdrop = document.createElement('div');
+  backdrop.className = 'sos-confirm-backdrop';
+  backdrop.innerHTML = `
+    <section class="sos-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="sos-confirm-title" aria-describedby="sos-confirm-description">
+      <h2 id="sos-confirm-title">Start Emergency Mode?</h2>
+      <p id="sos-confirm-description">This will display your emergency profile, incident details, and nearest verified emergency facilities. RoadSOS does not call 911 or dispatch services automatically.</p>
+      <div class="sos-confirm-actions">
+        <button type="button" class="btn-secondary" id="sos-cancel-countdown">Cancel</button>
+        <button type="button" class="sos-confirm-activate" id="sos-confirm-countdown">Start in ${countdown}s</button>
+      </div>
+    </section>`;
+  document.body.appendChild(backdrop);
+
+  const confirmButton = backdrop.querySelector('#sos-confirm-countdown');
+  const cancelCountdown = () => {
+    if (sosConfirmationTimer) {
+      clearInterval(sosConfirmationTimer);
+      sosConfirmationTimer = null;
+    }
+    backdrop.remove();
+  };
+
+  backdrop.querySelector('#sos-cancel-countdown').onclick = cancelCountdown;
+  confirmButton.onclick = () => {
+    if (sosConfirmationTimer) {
+      clearInterval(sosConfirmationTimer);
+      sosConfirmationTimer = null;
+    }
+    backdrop.remove();
+    activateSOS();
+  };
+
+  sosConfirmationTimer = setInterval(() => {
+    countdown--;
+    if (countdown <= 0) {
+      if (sosConfirmationTimer) {
+        clearInterval(sosConfirmationTimer);
+        sosConfirmationTimer = null;
+      }
+      backdrop.remove();
+      activateSOS();
+    } else {
+      confirmButton.textContent = `Start in ${countdown}s`;
+    }
+  }, 1000);
+}
+
+function activateSOS() {
   const p = roadData.profile;
   const inc = roadData.incident;
 
-  // Set User Details
-  document.getElementById('emg-user-info').textContent = `Emergency Alert: ${p.name}`;
-  document.getElementById('emg-user-contact').textContent = `Phone: ${p.phone || 'Not set'} · Location: ${p.location}`;
-  document.getElementById('emg-coords').textContent = `📍 ${p.location} — Sharing Live Location`;
+  document.getElementById('emg-user-info').textContent = p.name || 'Emergency User';
+  const contactParts = [p.phone, p.location || userLocation.address].filter(Boolean);
+  document.getElementById('emg-user-contact').textContent = contactParts.join(' · ') || 'No contact details configured';
 
-  // Set Active Incident Info
-  document.getElementById('emg-inc-type').textContent = inc.type || 'Road Accident';
-  document.getElementById('emg-inc-condition').textContent = inc.condition || 'Unknown';
-  document.getElementById('emg-inc-people').textContent = String(inc.people || 1);
-  document.getElementById('emg-inc-notes').textContent = inc.notes ? `Notes: ${inc.notes}` : 'No additional incident notes provided.';
+  const locCoords = (userLocation.lat != null && userLocation.lon != null)
+    ? `Live GPS: ${userLocation.lat.toFixed(5)}° N, ${userLocation.lon.toFixed(5)}° E (${userLocation.address || 'Coordinates'})`
+    : (p.location ? `Saved Profile Location: ${p.location}` : 'No location specified');
+  document.getElementById('emg-coords').textContent = locCoords;
+  document.getElementById('emg-location-status').textContent = userLocation.status === 'granted' ? 'Live GPS' : (p.location ? 'Saved' : 'None');
 
-  // Primary Contact
+  document.getElementById('emg-inc-type').textContent = inc.type || 'Not specified';
+  document.getElementById('emg-inc-condition').textContent = inc.condition || 'Not specified';
+  document.getElementById('emg-inc-people').textContent = inc.people ? `${inc.people} ${Number(inc.people) === 1 ? 'person' : 'people'}` : 'Not specified';
+  document.getElementById('emg-inc-notes').textContent = inc.notes ? `Notes: ${inc.notes}` : 'No additional notes provided.';
+
   const primaryContact = roadData.contacts.length > 0 ? roadData.contacts[0] : null;
-  document.getElementById('emg-inc-contact').textContent = primaryContact 
-    ? `${primaryContact.name} (${primaryContact.relation})` 
-    : 'None entered';
+  document.getElementById('emg-inc-contact').textContent = primaryContact
+    ? `${primaryContact.name} (${primaryContact.relation}) · ${primaryContact.phone}`
+    : 'None added';
 
-  // Stats
+  const allServices = getAllRealServices();
   document.getElementById('emg-stat-contacts').textContent = String(roadData.contacts.length);
-  document.getElementById('emg-stat-responders').textContent = String(Math.min(roadData.services.length, 3));
+  document.getElementById('emg-stat-responders').textContent = String(allServices.length);
 
-  // En-Route Responders from user's services
   const respondersContainer = document.getElementById('emg-responders-list');
   respondersContainer.innerHTML = '';
 
-  const dispatchable = roadData.services.filter(s => s.type === 'ambulance' || s.type === 'police' || s.type === 'hospital');
-  const pool = dispatchable.length > 0 ? dispatchable : roadData.services;
-
-  if (pool.length === 0) {
+  if (allServices.length === 0) {
     respondersContainer.innerHTML = `
-      <div style="font-size:12px;color:rgba(255,255,255,.6);padding:10px;background:#2D0A0A;border-radius:10px">
-        No specific emergency responders entered in your profile services. Alert has been broadcast to standard emergency dispatch.
+      <div style="font-size:12px;color:rgba(255,255,255,.7);padding:14px;background:#2D0A0A;border-radius:10px;text-align:center">
+        No nearby services currently discovered. Enable location access to see nearest emergency facilities.
+        <br><br>
+        <button type="button" class="btn-primary" style="margin:0 auto" onclick="requestUserLocation(() => fetchRealNearbyServices(), null)">
+          📍 Find Nearest Facilities
+        </button>
       </div>
     `;
   } else {
-    pool.slice(0, 3).forEach((svc, index) => {
+    allServices.slice(0, 4).forEach(svc => {
       const iconData = getServiceIcon(svc.type);
-      const dist = Number(svc.distance || 1.5);
-      const etaMinutes = Math.max(2, Math.round(dist * 3.2));
-      const progressPercent = Math.max(30, 85 - index * 20);
-
       const item = document.createElement('div');
       item.className = 'responder-item';
       item.innerHTML = `
         <div class="resp-icon">${iconData.emoji}</div>
-        <div class="resp-info" style="flex:1">
+        <div class="resp-info" style="flex:1;min-width:0">
           <h4>${escapeHTML(svc.name)}</h4>
-          <p>${escapeHTML(svc.subtitle || iconData.label)} · ${dist.toFixed(1)} km away</p>
-          <div class="resp-bar">
-            <div class="resp-progress" style="width:${progressPercent}%"></div>
-          </div>
+          <p>${escapeHTML(svc.subtitle || iconData.label)} · ${svc.distance.toFixed(1)} km</p>
         </div>
-        <div class="resp-eta">${etaMinutes} min<br><small style="font-size:10px;color:rgba(255,255,255,.6);font-weight:normal">ETA</small></div>
+        ${svc.phone ? `<button class="nearby-call-btn" onclick="callPhone('${escapeHTML(svc.phone)}')">Call</button>` : ''}
       `;
       respondersContainer.appendChild(item);
     });
   }
 
-  // Start SOS Timer
+  // SOS Timer
   sosSeconds = 0;
   if (sosTimerInterval) clearInterval(sosTimerInterval);
   document.getElementById('emg-timer').textContent = '00:00';
@@ -1122,9 +1926,8 @@ function triggerSOS() {
     document.getElementById('emg-timer').textContent = `${mins}:${secs}`;
   }, 1000);
 
-  // Switch to SOS screen
   showScreen('emergency');
-  showToast('🚨 SOS ACTIVATED! Emergency dispatch notified with your details.');
+  showToast('Emergency Mode is active. Stay calm.');
 }
 
 function cancelSOS() {
@@ -1139,52 +1942,106 @@ function cancelSOS() {
 function callPrimaryContact() {
   if (roadData.contacts.length > 0) {
     const c = roadData.contacts[0];
-    showToast(`Dialing primary contact: ${c.name} (${c.phone || 'No phone set'})`);
+    if (c.phone) callPhone(c.phone);
+    else showToast('This contact has no phone number saved.');
   } else {
-    showToast('No emergency contacts entered. Please add contacts in Setup.');
+    showToast('No emergency contacts saved. Add contacts in Setup.');
   }
 }
 
-function shareEmergencyLocation() {
-  const loc = roadData.profile.location || 'Current location';
-  showToast(`Live coordinates & location shared: "${loc}"`);
+async function shareEmergencyLocation() {
+  let text = '';
+  if (userLocation.status === 'granted' && userLocation.lat != null) {
+    text = `EMERGENCY ALERT: I need assistance. My current GPS location: https://maps.google.com/?q=${userLocation.lat},${userLocation.lon} (${userLocation.address || 'Coordinates'})`;
+  } else if (roadData.profile.location) {
+    text = `EMERGENCY ALERT: I need assistance. My location: ${roadData.profile.location}`;
+  } else {
+    showToast('Add a location or enable GPS before sharing.');
+    return;
+  }
+
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: 'Emergency SOS Location', text: text });
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(text);
+      showToast('Emergency location copied to clipboard.');
+    } else {
+      showToast('Location sharing not supported on this device.');
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') showToast('Could not share location.');
+  }
 }
 
 function callNearestService() {
-  if (roadData.services.length > 0) {
-    const s = roadData.services[0];
-    showToast(`Calling Dispatch: ${s.name} (${s.phone || 'Emergency line'})`);
+  const all = getAllRealServices();
+  const withPhone = all.filter(s => s.phone);
+  if (withPhone.length > 0) {
+    callPhone(withPhone[0].phone);
+  } else if (all.length > 0) {
+    showToast('The nearest facility does not have a phone listed.');
   } else {
-    showToast('Calling General Emergency Dispatch (108/911)');
+    showToast('No nearby emergency services found. Please detect location.');
   }
 }
 
 // ===== SETUP & PROFILE FORM MANAGEMENT =====
 
+function detectGPSForSetup() {
+  const statusEl = document.getElementById('location-detect-status');
+  if (statusEl) statusEl.textContent = 'Detecting GPS...';
+
+  requestUserLocation(
+    async (lat, lon) => {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+        if (res.ok) {
+          const data = await res.json();
+          const addr = data.address || {};
+          const parts = [
+            addr.road || addr.pedestrian || addr.suburb || addr.neighbourhood,
+            addr.city || addr.town || addr.village || addr.county,
+            addr.state
+          ].filter(Boolean);
+          const full = parts.join(', ') || data.display_name.split(',').slice(0, 3).join(',');
+          document.getElementById('inp-user-location').value = full;
+          roadData.profile.location = full;
+          if (statusEl) statusEl.textContent = '✅ Location detected';
+          setFieldError(document.getElementById('inp-user-location'), '');
+          return;
+        }
+      } catch (e) {}
+      const fallback = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+      document.getElementById('inp-user-location').value = fallback;
+      roadData.profile.location = fallback;
+      if (statusEl) statusEl.textContent = '✅ Coordinates detected';
+      setFieldError(document.getElementById('inp-user-location'), '');
+    },
+    err => {
+      if (statusEl) statusEl.textContent = '⚠️ ' + err;
+    }
+  );
+}
+
 function populateProfileForm() {
-  // Populate Personal Info
   document.getElementById('inp-user-name').value = roadData.profile.name || '';
   document.getElementById('inp-user-phone').value = roadData.profile.phone || '';
   document.getElementById('inp-user-location').value = roadData.profile.location || '';
 
-  // Populate Incident
-  document.getElementById('inp-inc-type').value = roadData.incident.type || 'Road Accident';
-  document.getElementById('inp-inc-condition').value = roadData.incident.condition || 'No injury - Everyone safe';
-  document.getElementById('inp-inc-people').value = roadData.incident.people || 1;
+  document.getElementById('inp-inc-type').value = roadData.incident.type || '';
+  document.getElementById('inp-inc-condition').value = roadData.incident.condition || '';
+  document.getElementById('inp-inc-people').value = roadData.incident.people || '';
   document.getElementById('inp-inc-notes').value = roadData.incident.notes || '';
 
-  // Populate Safety Tip
   document.getElementById('inp-safety-tip').value = roadData.safetyTip || '';
 
-  // Render Contacts Repeater
   renderContactsRepeater();
-
-  // Render Services Repeater
-  renderServicesRepeater();
 }
 
 function renderContactsRepeater() {
   const container = document.getElementById('contacts-repeater-container');
+  if (!container) return;
   container.innerHTML = '';
 
   if (roadData.contacts.length === 0) {
@@ -1203,16 +2060,16 @@ function renderContactsRepeater() {
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Full Name *</label>
-          <input class="form-input" value="${escapeHTML(c.name || '')}" placeholder="e.g. Alex Morgan" oninput="roadData.contacts[${idx}].name = this.value" required>
+          <input class="form-input" value="${escapeHTML(c.name || '')}" placeholder="Contact's full name" oninput="roadData.contacts[${idx}].name = this.value" required>
         </div>
         <div class="form-group">
           <label class="form-label">Relationship *</label>
-          <input class="form-input" value="${escapeHTML(c.relation || '')}" placeholder="e.g. Spouse / Brother" oninput="roadData.contacts[${idx}].relation = this.value" required>
+          <input class="form-input" value="${escapeHTML(c.relation || '')}" placeholder="Relationship to you" oninput="roadData.contacts[${idx}].relation = this.value" required>
         </div>
       </div>
       <div class="form-group" style="margin-top:8px">
         <label class="form-label">Phone Number *</label>
-        <input class="form-input" type="tel" value="${escapeHTML(c.phone || '')}" placeholder="e.g. +1 555-0199" oninput="roadData.contacts[${idx}].phone = this.value" required>
+        <input class="form-input" type="tel" value="${escapeHTML(c.phone || '')}" placeholder="Contact's phone number" oninput="roadData.contacts[${idx}].phone = this.value" required>
       </div>
     `;
     container.appendChild(row);
@@ -1234,109 +2091,117 @@ function removeContactRow(idx) {
   renderContactsRepeater();
 }
 
-function renderServicesRepeater() {
-  const container = document.getElementById('services-repeater-container');
-  container.innerHTML = '';
+function setFieldError(input, message) {
+  if (!input) return;
+  const group = input.closest('.form-group');
+  if (!group) return;
+  const existing = group.querySelector('.field-error');
+  if (existing) existing.remove();
+  input.classList.toggle('invalid', Boolean(message));
+  input.setAttribute('aria-invalid', String(Boolean(message)));
+  if (message) {
+    const error = document.createElement('div');
+    error.className = 'field-error';
+    error.textContent = message;
+    group.appendChild(error);
+  }
+}
 
-  if (roadData.services.length === 0) {
-    container.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-style:italic">No emergency services added yet. Click "+ Add Emergency Service" below.</div>`;
-    return;
+function clearFieldErrors() {
+  document.querySelectorAll('#profileSetupForm .field-error').forEach(error => error.remove());
+  document.querySelectorAll('#profileSetupForm .invalid').forEach(input => {
+    input.classList.remove('invalid');
+    input.setAttribute('aria-invalid', 'false');
+  });
+}
+
+function isValidPhone(phone) {
+  return /^\+?[0-9][0-9\s().-]{6,19}$/.test(phone);
+}
+
+function validateProfileForm() {
+  clearFieldErrors();
+  const name = document.getElementById('inp-user-name');
+  const phone = document.getElementById('inp-user-phone');
+  const location = document.getElementById('inp-user-location');
+  const incidentType = document.getElementById('inp-inc-type');
+  const condition = document.getElementById('inp-inc-condition');
+  const people = document.getElementById('inp-inc-people');
+  let firstInvalid = null;
+
+  const validate = (input, message) => {
+    setFieldError(input, message);
+    if (message && !firstInvalid) firstInvalid = input;
+  };
+
+  validate(name, name.value.trim() ? '' : 'Full name is required.');
+  validate(phone, !phone.value.trim() ? 'Phone number is required.' : isValidPhone(phone.value.trim()) ? '' : 'Enter a valid phone number.');
+  validate(location, location.value.trim() ? '' : 'Current location is required.');
+
+  const validIncidentTypes = ['Road Accident', 'Vehicle Breakdown', 'Medical Emergency', 'Road Hazard', 'Flat Tire', 'Other'];
+  if (incidentType.value && !validIncidentTypes.includes(incidentType.value)) {
+    validate(incidentType, 'Select a valid incident type.');
   }
 
-  roadData.services.forEach((s, idx) => {
-    const row = document.createElement('div');
-    row.className = 'repeater-item';
-    row.innerHTML = `
-      <div class="repeater-header">
-        <span class="repeater-tag">Service #${idx + 1}</span>
-        <button type="button" class="btn-delete" onclick="removeServiceRow(${idx})">🗑️ Remove</button>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Category *</label>
-          <select class="form-select" onchange="roadData.services[${idx}].type = this.value">
-            <option value="hospital" ${s.type === 'hospital' ? 'selected' : ''}>🏥 Hospital</option>
-            <option value="ambulance" ${s.type === 'ambulance' ? 'selected' : ''}>🚑 Ambulance</option>
-            <option value="police" ${s.type === 'police' ? 'selected' : ''}>👮 Police</option>
-            <option value="rescue" ${s.type === 'rescue' ? 'selected' : ''}>🔧 Rescue / Towing</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Distance (km) *</label>
-          <input class="form-input" type="number" step="0.1" min="0.1" value="${s.distance || '1.0'}" placeholder="e.g. 1.2" oninput="roadData.services[${idx}].distance = Number(this.value) || 0" required>
-        </div>
-      </div>
-      <div class="form-row" style="margin-top:8px">
-        <div class="form-group">
-          <label class="form-label">Service Name *</label>
-          <input class="form-input" value="${escapeHTML(s.name || '')}" placeholder="e.g. City General Hospital" oninput="roadData.services[${idx}].name = this.value" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Status Label</label>
-          <input class="form-input" value="${escapeHTML(s.status || 'AVAILABLE')}" placeholder="e.g. OPEN 24/7" oninput="roadData.services[${idx}].status = this.value">
-        </div>
-      </div>
-      <div class="form-row" style="margin-top:8px">
-        <div class="form-group">
-          <label class="form-label">Subtitle / Specialty</label>
-          <input class="form-input" value="${escapeHTML(s.subtitle || '')}" placeholder="e.g. Trauma Center · 24 hrs" oninput="roadData.services[${idx}].subtitle = this.value">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Phone / Dispatch</label>
-          <input class="form-input" value="${escapeHTML(s.phone || '')}" placeholder="e.g. 108 or direct number" oninput="roadData.services[${idx}].phone = this.value">
-        </div>
-      </div>
-    `;
-    container.appendChild(row);
+  const validConditions = [
+    'No injury - Everyone safe',
+    'Minor injuries / scrapes',
+    'Possible fracture',
+    'Severe bleeding',
+    'Unconscious person',
+    'Unknown condition'
+  ];
+  if (condition.value && !validConditions.includes(condition.value)) {
+    validate(condition, 'Select a valid condition.');
+  }
+
+  if (people.value.trim()) {
+    const pNum = Number(people.value);
+    if (!Number.isInteger(pNum) || pNum <= 0) {
+      validate(people, 'People involved must be a positive number.');
+    }
+  }
+
+  document.querySelectorAll('#contacts-repeater-container .repeater-item').forEach(row => {
+    const fields = row.querySelectorAll('input');
+    validate(fields[0], fields[0].value.trim() ? '' : 'Contact name is required.');
+    validate(fields[1], fields[1].value.trim() ? '' : 'Relationship is required.');
+    validate(fields[2], !fields[2].value.trim() ? 'Contact phone number is required.' : isValidPhone(fields[2].value.trim()) ? '' : 'Enter a valid phone number.');
   });
+
+  if (firstInvalid) {
+    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    firstInvalid.focus();
+    return false;
+  }
+  return true;
 }
 
-function addServiceRow() {
-  roadData.services.push({
-    id: generateId(),
-    type: 'hospital',
-    name: '',
-    subtitle: '',
-    distance: 1.0,
-    status: 'AVAILABLE',
-    phone: ''
-  });
-  renderServicesRepeater();
-}
-
-function removeServiceRow(idx) {
-  roadData.services.splice(idx, 1);
-  renderServicesRepeater();
-}
-
-// Form Submission Handler
 function handleSaveProfile(event) {
   event.preventDefault();
+  if (!validateProfileForm()) return;
 
-  // Read personal inputs
   roadData.profile.name = document.getElementById('inp-user-name').value.trim();
   roadData.profile.phone = document.getElementById('inp-user-phone').value.trim();
   roadData.profile.location = document.getElementById('inp-user-location').value.trim();
 
-  // Read incident inputs
   roadData.incident.type = document.getElementById('inp-inc-type').value;
   roadData.incident.condition = document.getElementById('inp-inc-condition').value;
-  roadData.incident.people = Number(document.getElementById('inp-inc-people').value) || 1;
+  const peopleValue = document.getElementById('inp-inc-people').value;
+  roadData.incident.people = peopleValue ? Number(peopleValue) : '';
   roadData.incident.notes = document.getElementById('inp-inc-notes').value.trim();
 
-  // Read safety tip
   roadData.safetyTip = document.getElementById('inp-safety-tip').value.trim();
 
-  // Filter out any contacts without names
-  roadData.contacts = roadData.contacts.filter(c => c.name && c.name.trim());
+  roadData.contacts = roadData.contacts.map(c => ({
+    ...c,
+    name: (c.name || '').trim(),
+    relation: (c.relation || '').trim(),
+    phone: (c.phone || '').trim()
+  })).filter(c => c.name);
 
-  // Filter out any services without names
-  roadData.services = roadData.services.filter(s => s.name && s.name.trim());
-
-  // Persist
   persistData();
 
-  // Update all views immediately
   renderDashboard();
   renderNearbyServices();
 
@@ -1344,58 +2209,23 @@ function handleSaveProfile(event) {
   showScreen('dashboard');
 }
 
-// Reset data to clean empty state
 function resetAllData() {
-  if (confirm('Clear all profile, service, contact and incident data? The dashboard will return to the unconfigured state.')) {
+  if (confirm('Clear all profile, contact, and incident data? The dashboard will return to the unconfigured state.')) {
     roadData = JSON.parse(JSON.stringify(DEFAULT_EMPTY_STATE));
     persistData();
     populateProfileForm();
     renderDashboard();
     renderNearbyServices();
-    showToast('All data cleared.');
+    showToast('All profile data cleared.');
   }
 }
 
-// Convenient Test Template Loader (only populates when explicitly clicked)
-function loadSampleTemplateData() {
-  roadData = {
-    profile: {
-      name: 'Maya Vance',
-      phone: '+1 (555) 349-8201',
-      location: 'Highway 101, Mile Marker 42'
-    },
-    incident: {
-      type: 'Vehicle Breakdown',
-      condition: 'No injury - Everyone safe',
-      people: 2,
-      notes: 'Vehicle engine overheated with smoke, stopped on right shoulder.'
-    },
-    contacts: [
-      { id: 'c1', name: 'David Vance', relation: 'Spouse', phone: '+1 (555) 782-1102' },
-      { id: 'c2', name: 'Elena Frost', relation: 'Sister', phone: '+1 (555) 439-9014' },
-      { id: 'c3', name: 'Marcus Cole', relation: 'Friend', phone: '+1 (555) 902-3341' }
-    ],
-    services: [
-      { id: 's1', type: 'hospital', name: 'Pacific Coast Trauma Hospital', subtitle: 'Emergency Care · 24 hrs', distance: 1.8, status: 'OPEN 24/7', phone: '911' },
-      { id: 's2', type: 'ambulance', name: 'Metro Rapid Paramedics', subtitle: 'Advanced Life Support Unit', distance: 0.7, status: 'AVAILABLE', phone: '108' },
-      { id: 's3', type: 'police', name: 'State Highway Patrol Post 9', subtitle: 'Traffic Safety & Escort', distance: 1.2, status: 'ON DUTY', phone: '100' },
-      { id: 's4', type: 'rescue', name: 'Apex Rapid Heavy Tow', subtitle: 'Flatbed Recovery & Repair', distance: 2.5, status: 'AVAILABLE', phone: '1-800-555-TOW' }
-    ],
-    safetyTip: 'Turn on hazard lights immediately and place reflective warning triangles 50 meters behind the vehicle.'
-  };
-
-  persistData();
-  populateProfileForm();
-  renderDashboard();
-  renderNearbyServices();
-  showToast('⚡ Sample test data loaded and saved!');
-}
-
 // ===== AI ASSISTANT LOGIC =====
+
 const aiKnowledgeBase = {
   bleed: "For severe bleeding: Apply firm, continuous pressure with a clean cloth or sterile gauze. Keep the injured limb elevated above heart level if no fracture is suspected. Do not remove soaked cloths—add more layers on top.",
   cut: "For minor cuts: Wash gently with clean water and pat dry. Apply gentle pressure to stop bleeding, then cover with a clean dressing. Seek medical care if the cut is deep or gaping.",
-  unconscious: "If someone is unconscious: Check their breathing immediately. If breathing normally, place them in the recovery position (on their side) to keep the airway clear. If not breathing, call emergency services and begin chest compressions.",
+  unconscious: "If someone is unconscious: Check their breathing immediately. If breathing normally, place them in the recovery position (on their side) to keep the airway clear. If not breathing, call emergency services immediately and begin chest compressions.",
   faint: "If someone faints: Lay them flat on their back and elevate their feet 12 inches. Loosen tight clothing. Ensure fresh air. If they don't regain consciousness within 1 minute, treat as a medical emergency.",
   fracture: "For suspected fractures: Keep the injured limb completely still. Support it with a rolled towel, jacket, or splint in the position found. Never attempt to straighten a deformed limb. Apply an ice pack wrapped in cloth to reduce swelling.",
   broken: "For a broken bone: Immobilize the area, avoid unnecessary movement, and contact emergency services or proceed to the nearest trauma hospital.",
@@ -1406,10 +2236,28 @@ const aiKnowledgeBase = {
 
 function getAIAnswer(query) {
   const text = String(query || '').toLowerCase();
+  let answer = '';
   for (const [kw, ans] of Object.entries(aiKnowledgeBase)) {
-    if (text.includes(kw)) return ans;
+    if (text.includes(kw)) {
+      answer = ans;
+      break;
+    }
   }
-  return "I'm your RoadSOS first aid and breakdown guide. Ask me about bleeding, unconsciousness, fractures, CPR, road accident steps, or vehicle breakdowns.";
+  if (!answer) {
+    answer = "I'm your RoadSOS first aid and breakdown guide. Ask me about bleeding, unconsciousness, fractures, CPR, road accident steps, or vehicle breakdowns.";
+  }
+
+  const incident = roadData.incident;
+  const details = [
+    incident.type,
+    incident.condition,
+    incident.people ? `${incident.people} people involved` : '',
+    incident.notes
+  ].filter(Boolean);
+
+  return details.length
+    ? `[Active Incident: ${details.join(' · ')}]\n\n${answer}`
+    : answer;
 }
 
 function sendMessage() {
@@ -1423,7 +2271,7 @@ function sendMessage() {
   setTimeout(() => {
     const reply = getAIAnswer(text);
     appendChatMessage(reply, 'bot');
-  }, 450);
+  }, 400);
 }
 
 function sendQuick(prompt) {
@@ -1431,7 +2279,7 @@ function sendQuick(prompt) {
   setTimeout(() => {
     const reply = getAIAnswer(prompt);
     appendChatMessage(reply, 'bot');
-  }, 450);
+  }, 400);
 }
 
 function appendChatMessage(text, sender) {
@@ -1462,8 +2310,18 @@ function appendChatMessage(text, sender) {
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('profileSetupForm').addEventListener('input', event => {
+    if (event.target.classList.contains('invalid')) setFieldError(event.target, '');
+  });
+
   renderDashboard();
   renderNearbyServices();
+
+  // Initiate live GPS location detection and real nearby services discovery
+  requestUserLocation(
+    (lat, lon) => fetchRealNearbyServices(lat, lon),
+    () => renderNearbyServices()
+  );
 
   // If no data exists on first visit, notify user gently
   if (!isProfileConfigured()) {
